@@ -926,8 +926,8 @@
 
     // --- GITHUB REPOS AUTO PULL LOGIC ---
     const GITHUB_ORG = 'RatelSlop';
-    const CACHE_KEY = 'ratelslop_repos_cache_v4';
-    const CACHE_TIME_KEY = 'ratelslop_repos_cache_time_v4';
+    const CACHE_KEY = 'ratelslop_repos_cache_v5';
+    const CACHE_TIME_KEY = 'ratelslop_repos_cache_time_v5';
     const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minute cache
 
     function escapeHtml(str) {
@@ -963,6 +963,21 @@
         }
         const repos = await response.json();
         if (Array.isArray(repos)) {
+          // The organization endpoint only includes the primary language.
+          // Fetch each visible repository's full language list, falling back to that primary language on errors.
+          await Promise.all(repos.filter(repo => !repo.name.startsWith('.')).map(async repo => {
+            try {
+              const languagesResponse = await fetch(`https://api.github.com/repos/${GITHUB_ORG}/${encodeURIComponent(repo.name)}/languages`);
+              if (!languagesResponse.ok) throw new Error(`GitHub languages API error: ${languagesResponse.status}`);
+              const languages = await languagesResponse.json();
+              repo.languages = Object.entries(languages)
+                .filter(([, bytes]) => Number.isFinite(bytes) && bytes > 0)
+                .sort((a, b) => b[1] - a[1])
+                .map(([language]) => language);
+            } catch (err) {
+              console.warn(`Could not fetch languages for ${repo.name}:`, err);
+            }
+          }));
           localStorage.setItem(CACHE_KEY, JSON.stringify(repos));
           localStorage.setItem(CACHE_TIME_KEY, now.toString());
           return repos;
@@ -1000,7 +1015,10 @@
           const description = repo.description ? escapeHtml(repo.description) : t.noDesc;
           const name = escapeHtml(repo.name);
           const url = escapeHtml(repo.html_url);
-          const lang = repo.language ? `<span class="repo-meta-tag">${escapeHtml(repo.language)}</span>` : '';
+          const languages = Array.isArray(repo.languages) && repo.languages.length
+            ? repo.languages
+            : (repo.language ? [repo.language] : []);
+          const lang = languages.map(language => `<span class="repo-meta-tag">${escapeHtml(language)}</span>`).join('');
           const stars = repo.stargazers_count > 0 ? `<span class="repo-meta-tag">★ ${repo.stargazers_count}</span>` : '';
           const isArchived = repo.archived ? `<span class="repo-meta-tag">archived</span>` : '';
 
