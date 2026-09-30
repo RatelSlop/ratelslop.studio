@@ -75,4 +75,4 @@ Controleer na deployment `/repos`: alleen publieke projectvelden, geen token of
 privégegevens, en `X-Edge-Cache: MISS` gevolgd door `HIT` waar dezelfde edge-cache
 wordt gebruikt. Log-instellingen zijn niet uit deze response af te leiden; bekijk
 ze in het dashboard. Dit zijn technische controles, geen volledige juridische
-beoordeling. Zie ook [LEGAL-OPERATIONS.md](../LEGAL-OPERATIONS.md).
+beoordeling.
