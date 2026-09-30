@@ -986,9 +986,11 @@
 
     // --- GITHUB REPOS AUTO PULL LOGIC ---
     const GITHUB_ORG = 'RatelSlop';
-    const CACHE_KEY = 'ratelslop_repos_cache_v5';
-    const CACHE_TIME_KEY = 'ratelslop_repos_cache_time_v5';
-    const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minute cache
+    // Cloudflare Edge Proxy: caches aggregated repos & languages with a 3-minute TTL to prevent GitHub rate limits
+    const WORKER_ENDPOINT = 'https://api.ratelslop.studio/repos';
+    const CACHE_KEY = 'ratelslop_repos_cache_v6';
+    const CACHE_TIME_KEY = 'ratelslop_repos_cache_time_v6';
+    const CACHE_TTL_MS = 3 * 60 * 1000; // 3 minute cache (real-time freshness)
 
     function escapeHtml(str) {
       if (!str) return '';
@@ -1016,6 +1018,22 @@
         }
       }
 
+      // Step 1: Query Cloudflare Worker edge proxy (single fast call, pre-aggregated, 0 rate limit)
+      try {
+        const workerRes = await fetch(WORKER_ENDPOINT);
+        if (workerRes.ok) {
+          const repos = await workerRes.json();
+          if (Array.isArray(repos) && repos.length > 0) {
+            localStorage.setItem(CACHE_KEY, JSON.stringify(repos));
+            localStorage.setItem(CACHE_TIME_KEY, now.toString());
+            return repos;
+          }
+        }
+      } catch (err) {
+        console.warn('Cloudflare Worker proxy unavailable, falling back to direct GitHub API:', err);
+      }
+
+      // Step 2: Fallback to direct GitHub API
       try {
         const response = await fetch(`https://api.github.com/orgs/${GITHUB_ORG}/repos?sort=pushed&direction=desc&per_page=100`);
         if (!response.ok) {
@@ -1023,8 +1041,6 @@
         }
         const repos = await response.json();
         if (Array.isArray(repos)) {
-          // The organization endpoint only includes the primary language.
-          // Fetch each visible repository's full language list, falling back to that primary language on errors.
           await Promise.all(repos.filter(repo => !repo.name.startsWith('.')).map(async repo => {
             try {
               const languagesResponse = await fetch(`https://api.github.com/repos/${GITHUB_ORG}/${encodeURIComponent(repo.name)}/languages`);
@@ -1035,7 +1051,7 @@
                 .sort((a, b) => b[1] - a[1])
                 .map(([language]) => language);
             } catch (err) {
-              console.warn(`Could not fetch languages for ${repo.name}:`, err);
+              repo.languages = repo.language ? [repo.language] : [];
             }
           }));
           localStorage.setItem(CACHE_KEY, JSON.stringify(repos));
