@@ -608,6 +608,59 @@
       color: var(--badge-repo-text);
     }
 
+    .url-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.35rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      padding: 0.25rem 0.68rem;
+      border-radius: 9999px;
+      white-space: nowrap;
+      text-decoration: none;
+      transition: all 0.15s ease;
+    }
+
+    .url-btn.active {
+      background: var(--badge-repo-bg);
+      border: 1px solid var(--badge-repo-border);
+      color: var(--badge-repo-text);
+      cursor: pointer;
+    }
+
+    .url-btn.active:hover {
+      background: rgba(56, 189, 248, 0.28);
+      border-color: #7dd3fc;
+      color: #ffffff;
+      transform: translateY(-1px);
+      box-shadow: 0 2px 8px rgba(56, 189, 248, 0.25);
+    }
+
+    [data-theme="light"] .url-btn.active:hover {
+      background: #bae6fd;
+      border-color: #0284c7;
+      color: #0369a1;
+      box-shadow: 0 2px 8px rgba(2, 132, 199, 0.2);
+    }
+
+    .url-btn.active:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+
+    .url-btn.disabled {
+      background: rgba(148, 163, 184, 0.08);
+      border: 1px solid var(--border);
+      color: var(--text-dim);
+      cursor: not-allowed;
+      opacity: 0.75;
+      user-select: none;
+    }
+
     .more-projects-wrapper {
       display: inline-flex;
       align-items: center;
@@ -782,7 +835,7 @@
           <thead>
             <tr>
               <th id="th-app">App / Repository</th>
-              <th id="th-status" style="width: 140px; text-align: right;">Status</th>
+              <th id="th-url" style="width: 140px; text-align: right;">URL</th>
             </tr>
           </thead>
           <tbody id="repo-list">
@@ -817,7 +870,10 @@
         comingSoonDesc: "We're currently building new hobby experiments and AI slop. Once a repository is published on GitHub, it will appear here automatically.",
         comingSoonSync: 'connected to',
         thApp: 'App / Repository',
-        thStatus: 'Status',
+        thUrl: 'URL',
+        urlLive: 'Live &nearr;',
+        urlNone: 'None',
+        urlNoneTitle: 'No website URL configured on GitHub',
         noDesc: 'No description provided.',
         moreProjectsTitle: 'More projects & AI slop in development...',
         moreProjectsDesc: 'Cooking up new hobby experiments, tools, and ideas.',
@@ -834,7 +890,10 @@
         comingSoonDesc: 'We bouwen momenteel aan nieuwe hobby experimenten en AI slop. Zodra een repository openbaar wordt op GitHub, verschijnt deze hier direct in het overzicht.',
         comingSoonSync: 'gekoppeld aan',
         thApp: 'App / Repository',
-        thStatus: 'Status',
+        thUrl: 'URL',
+        urlLive: 'Live &nearr;',
+        urlNone: 'Geen',
+        urlNoneTitle: 'Geen website-URL ingesteld op GitHub',
         noDesc: 'Geen beschrijving opgegeven.',
         moreProjectsTitle: 'Meer projecten & AI slop in ontwikkeling...',
         moreProjectsDesc: 'Druk bezig met nieuwe hobby-experimenten, tools en ideeën.',
@@ -862,7 +921,8 @@
       document.getElementById('coming-soon-desc').textContent = t.comingSoonDesc;
       document.getElementById('coming-soon-sync-label').textContent = t.comingSoonSync;
       document.getElementById('th-app').textContent = t.thApp;
-      document.getElementById('th-status').textContent = t.thStatus;
+      const thUrlEl = document.getElementById('th-url');
+      if (thUrlEl) thUrlEl.textContent = t.thUrl;
 
       // Update theme toggle label
       const activeTheme = document.documentElement.getAttribute('data-theme') || 'dark';
@@ -1014,7 +1074,7 @@
           const tr = document.createElement('tr');
           const description = repo.description ? escapeHtml(repo.description) : t.noDesc;
           const name = escapeHtml(repo.name);
-          const url = escapeHtml(repo.html_url);
+          const repoUrl = escapeHtml(repo.html_url);
           const languages = Array.isArray(repo.languages) && repo.languages.length
             ? repo.languages
             : (repo.language ? [repo.language] : []);
@@ -1022,9 +1082,19 @@
           const stars = repo.stargazers_count > 0 ? `<span class="repo-meta-tag">★ ${repo.stargazers_count}</span>` : '';
           const isArchived = repo.archived ? `<span class="repo-meta-tag">archived</span>` : '';
 
+          const rawHomepage = repo.homepage ? repo.homepage.trim() : '';
+          let urlButtonHtml = '';
+          if (rawHomepage) {
+            const fullHomepage = /^https?:\/\//i.test(rawHomepage) ? rawHomepage : `https://${rawHomepage}`;
+            const safeHomepage = escapeHtml(fullHomepage);
+            urlButtonHtml = `<a href="${safeHomepage}" target="_blank" rel="noopener noreferrer" class="url-btn active" title="${safeHomepage}" aria-label="${name} website">${t.urlLive}</a>`;
+          } else {
+            urlButtonHtml = `<span class="url-btn disabled" title="${t.urlNoneTitle}">${t.urlNone}</span>`;
+          }
+
           tr.innerHTML = `
             <td>
-              <a href="${url}" target="_blank" rel="noopener noreferrer" class="project-name">
+              <a href="${repoUrl}" target="_blank" rel="noopener noreferrer" class="project-name">
                 ${name} &nearr;
               </a>
               <p class="project-desc">${description}</p>
@@ -1035,7 +1105,7 @@
               </div>
             </td>
             <td style="text-align: right;">
-              <span class="status-badge repo">repo</span>
+              ${urlButtonHtml}
             </td>
           `;
           tbody.appendChild(tr);
