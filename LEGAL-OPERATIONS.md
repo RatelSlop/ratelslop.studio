@@ -6,20 +6,35 @@ bewijst op zichzelf geen volledige naleving.
 
 ## Nog te bevestigen
 
-- **Verwerkingsverantwoordelijke(n):** bepaal wie de doelen en middelen van de
-  verwerking voor de hub, Worker en supportmail daadwerkelijk bepaalt. Een
-  contributor is niet automatisch verantwoordelijke. Vul de echte identiteit en
-  contactgegevens van de verantwoordelijke(n) in `privacy/index.html` in, zowel in
-  de initiële HTML als in `TRANSLATIONS.en` en `.nl`. De creatieve naam RatelSlop en
-  alleen een contactmail vervangen deze identiteit niet. Bij gezamenlijke
-  verantwoordelijkheid moeten ook de onderlinge verantwoordelijkheden passend
-  worden geregeld. Zie [AVG, artikelen 13 en 26](https://eur-lex.europa.eu/eli/reg/2016/679/oj).
+- **AVG-toepasselijkheid en verantwoordelijke(n):** beoordeel eerst per
+  verwerking of de uitzondering voor uitsluitend persoonlijke of huishoudelijke
+  activiteiten geldt (artikel 2 lid 2 sub c en overweging 18 AVG). Ook online
+  activiteiten en hobby's kunnen daaronder vallen. Openbare toegankelijkheid is
+  op zichzelf geen volledige beoordeling; het ontbreken van inkomsten evenmin.
+  Betrek de daadwerkelijke doelen, bezoekersverwerking via hosting en Worker, en
+  de aard van supportcorrespondentie bij die beoordeling. De publieke hub toont
+  particuliere hobbyprojecten zonder commercieel doel; dat is relevante context,
+  geen automatische vrijstelling voor iedere verwerking.
+  Voor verwerkingen waarop de AVG van toepassing is, bepaal wie de doelen en
+  middelen daadwerkelijk bepaalt en vermeld diens echte identiteit en
+  contactgegevens in `privacy/index.html`, zowel in de initiële HTML als in
+  `TRANSLATIONS.en` en `.nl`. Een contributor is niet automatisch verantwoordelijke.
+  Waar deze informatieplicht geldt, vervangen de creatieve naam RatelSlop en
+  alleen een contactmail de identiteit niet. Bij gezamenlijke verantwoordelijkheid
+  moeten ook de onderlinge verantwoordelijkheden passend worden geregeld. Zie
+  [AVG, artikelen 2, 13 en 26 en overweging 18](https://eur-lex.europa.eu/eli/reg/2016/679/oj),
+  de [uitleg van de BfDI over de huishoudelijke uitzondering](https://www.bfdi.bund.de/SharedDocs/Downloads/DE/Broschueren/INFO1.pdf?__blob=publicationFile&v=27)
+  en de [Hessische toezichthouder over providerlogs op eenvoudige websites](https://datenschutz.hessen.de/infothek/haeufig-gestellte-fragen).
 - **Duitse aanbiedersinformatie:** beoordeel de daadwerkelijke publieke
   projecthub en afzonderlijke diensten onder
   [§ 5 DDG](https://www.gesetze-im-internet.de/ddg/__5.html) en
   [§ 18 MStV](https://www.gesetze-bayern.de/Content/Document/MStV-18).
   Niet-commercieel of hobby betekent niet automatisch uitsluitend persoonlijk of
-  familiair. Als een plicht geldt, moeten naam, adres en overige toepasselijke
+  familiair. Omgekeerd bewijst openbare toegankelijkheid op zichzelf geen
+  Impressumplicht. De uitzondering voor uitsluitend persoonlijke of familiale
+  doeleinden moet apart worden beoordeeld; zie de
+  [uitleg van de Landesanstalt für Medien NRW](https://www.medienanstalt-nrw.de/aufsicht/transparenz-im-internet.html).
+  Als een plicht geldt, moeten naam, adres en overige toepasselijke
   gegevens werkelijk gemakkelijk vindbaar worden gepubliceerd. De voorwaardelijke
   uitleg in de ToS vervult zo'n plicht niet. Laat de toepasselijkheid en een
   eventueel geschikt bereikbaar adres gericht beoordelen; publiceer geen
@@ -36,8 +51,9 @@ bewijst op zichzelf geen volledige naleving.
   is, rekening houdend met aantoonbare verplichtingen of geschillen. Leg passende
   interne controles en termijnen vast. Controleer de bereikbaarheid van
   `support@ratelslop.studio` en handel privacyverzoeken binnen de AVG-termijnen af.
-- **Gerechtvaardigd belang:** documenteer doel, noodzakelijkheid en afweging voor
-  hosting, projectmetadata-verzoeken en supportmail (AVG artikel 6 lid 1 sub f).
+- **Gerechtvaardigd belang:** documenteer voor verwerkingen waarop de AVG van
+  toepassing is doel, noodzakelijkheid en afweging voor hosting,
+  projectmetadata-verzoeken en supportmail (AVG artikel 6 lid 1 sub f).
   Alleen de rechtsgrond in de privacyverklaring noemen is geen volledige afweging.
 
 ## Technische correcties in de repository
