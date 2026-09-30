@@ -208,6 +208,22 @@
       margin-bottom: 3rem;
     }
 
+    .display-controls {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      min-width: 0;
+    }
+
+    .preference-note {
+      margin: 0;
+      max-width: 12rem;
+      font-size: 0.65rem;
+      line-height: 1.4;
+      color: var(--text-dim);
+      text-align: right;
+    }
+
     .top-bar-brand {
       display: inline-flex;
       align-items: center;
@@ -528,6 +544,12 @@
     }
 
     @media (max-width: 600px) {
+      .display-controls {
+        gap: 0.5rem;
+      }
+      .preference-note {
+        max-width: 8rem;
+      }
       body {
         padding: 1.5rem 1rem;
       }
@@ -572,34 +594,36 @@
         <img src="/logo.png" alt="RatelSlop Logo" class="brand-logo" width="59" height="68">
       </a>
 
-      <div class="controls-group">
-        <!-- Theme Switcher Button (Boven) -->
-        <button id="theme-toggle" class="theme-toggle-btn" type="button" aria-label="Toggle theme" title="Toggle dark / light mode">
-          <svg id="sun-icon" viewBox="0 0 24 24">
-            <circle cx="12" cy="12" r="5"></circle>
-            <line x1="12" y1="1" x2="12" y2="3"></line>
-            <line x1="12" y1="21" x2="12" y2="23"></line>
-            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
-            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
-            <line x1="1" y1="12" x2="3" y2="12"></line>
-            <line x1="21" y1="12" x2="23" y2="12"></line>
-            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
-            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
-          </svg>
-          <svg id="moon-icon" style="display:none;" viewBox="0 0 24 24">
-            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
-          </svg>
-          <span id="theme-text">Light</span>
-        </button>
+      <div class="display-controls">
+        <p id="preference-note" class="preference-note">Display choices are saved on this device.</p>
+        <div class="controls-group">
+          <!-- Theme Switcher Button (Boven) -->
+          <button id="theme-toggle" class="theme-toggle-btn" type="button" aria-label="Toggle theme" title="Toggle dark / light mode">
+            <svg id="sun-icon" viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="5"></circle>
+              <line x1="12" y1="1" x2="12" y2="3"></line>
+              <line x1="12" y1="21" x2="12" y2="23"></line>
+              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+              <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+              <line x1="1" y1="12" x2="3" y2="12"></line>
+              <line x1="21" y1="12" x2="23" y2="12"></line>
+              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+              <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+            </svg>
+            <svg id="moon-icon" style="display:none;" viewBox="0 0 24 24">
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+            </svg>
+            <span id="theme-text">Light</span>
+          </button>
 
-        <!-- Language Switcher Dropdown (Onder) -->
-        <div class="lang-select-wrapper">
-          <select id="lang-select" class="lang-select" aria-label="Select language">
-            <option value="en" selected>EN</option>
-            <option value="nl">NL</option>
-          </select>
+          <!-- Language Switcher Dropdown (Onder) -->
+          <div class="lang-select-wrapper">
+            <select id="lang-select" class="lang-select" aria-label="Select language">
+              <option value="en" selected>EN</option>
+              <option value="nl">NL</option>
+            </select>
+          </div>
         </div>
-        <p id="preference-note" style="font-size: 0.65rem; color: var(--text-dim); max-width: 12rem; text-align: right;">Display choices are saved on this device.</p>
       </div>
     </div>
 
