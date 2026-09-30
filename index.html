@@ -22,14 +22,27 @@
 
   <!-- Voorkom flikkering van thema bij het laden -->
   <script>
-    (function() {
-      const storedTheme = localStorage.getItem('theme');
-      if (storedTheme) {
-        document.documentElement.setAttribute('data-theme', storedTheme);
-      } else {
-        const prefersLight = window.matchMedia('(prefers-color-scheme: light)').matches;
-        document.documentElement.setAttribute('data-theme', prefersLight ? 'light' : 'dark');
+    function readPreference(key, allowedValues) {
+      try {
+        const value = localStorage.getItem(key);
+        return allowedValues.includes(value) ? value : null;
+      } catch {
+        return null;
       }
+    }
+
+    function savePreference(key, value) {
+      try {
+        localStorage.setItem(key, value);
+      } catch {
+        // Display controls still work when browser storage is unavailable.
+      }
+    }
+
+    (function() {
+      const storedTheme = readPreference('theme', ['light', 'dark']);
+      const prefersLight = window.matchMedia('(prefers-color-scheme: light)').matches;
+      document.documentElement.setAttribute('data-theme', storedTheme || (prefersLight ? 'light' : 'dark'));
     })();
   </script>
 
@@ -784,6 +797,7 @@
             <option value="nl">NL</option>
           </select>
         </div>
+        <p id="preference-note" style="font-size: 0.65rem; color: var(--text-dim); max-width: 12rem; text-align: right;">Display choices are saved on this device.</p>
       </div>
     </div>
 
@@ -878,6 +892,7 @@
         moreProjectsTitle: 'More projects & AI slop in development...',
         moreProjectsDesc: 'Cooking up new hobby experiments, tools, and ideas.',
         moreProjectsBadge: 'wip',
+        preferenceNote: 'Display choices are saved on this device.',
         themeLight: 'Light',
         themeDark: 'Dark'
       },
@@ -898,20 +913,23 @@
         moreProjectsTitle: 'Meer projecten & AI slop in ontwikkeling...',
         moreProjectsDesc: 'Druk bezig met nieuwe hobby-experimenten, tools en ideeën.',
         moreProjectsBadge: 'wip',
+        preferenceNote: 'Weergavekeuzes worden op dit apparaat bewaard.',
         themeLight: 'Licht',
         themeDark: 'Donker'
       }
     };
 
-    let currentLang = localStorage.getItem('lang') || 'en';
+    let currentLang = readPreference('lang', ['en', 'nl']) || 'en';
     let loadedRepos = null;
 
-    function applyLanguage(lang) {
+    function applyLanguage(lang, remember = false) {
+      lang = Object.hasOwn(TRANSLATIONS, lang) ? lang : 'en';
       currentLang = lang;
-      localStorage.setItem('lang', lang);
+      if (remember) savePreference('lang', lang);
       document.documentElement.lang = lang;
 
       const t = TRANSLATIONS[lang] || TRANSLATIONS.en;
+      document.getElementById('preference-note').textContent = t.preferenceNote;
       const statusTextEl = document.getElementById('status-text');
       if (statusTextEl) statusTextEl.textContent = t.statusText;
       document.getElementById('site-desc').textContent = t.siteDesc;
@@ -942,7 +960,7 @@
 
     const langSelect = document.getElementById('lang-select');
     langSelect.addEventListener('change', (e) => {
-      applyLanguage(e.target.value);
+      applyLanguage(e.target.value, true);
     });
 
     // --- THEME TOGGLE LOGIC ---
@@ -965,6 +983,7 @@
     }
 
     const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
+    let selectedTheme = readPreference('theme', ['light', 'dark']);
     updateToggleButton(currentTheme);
 
     toggleBtn.addEventListener('click', () => {
@@ -972,12 +991,13 @@
       const targetTheme = activeTheme === 'light' ? 'dark' : 'light';
       
       document.documentElement.setAttribute('data-theme', targetTheme);
-      localStorage.setItem('theme', targetTheme);
+      selectedTheme = targetTheme;
+      savePreference('theme', targetTheme);
       updateToggleButton(targetTheme);
     });
 
     window.matchMedia('(prefers-color-scheme: light)').addEventListener('change', (e) => {
-      if (!localStorage.getItem('theme')) {
+      if (!selectedTheme) {
         const newTheme = e.matches ? 'light' : 'dark';
         document.documentElement.setAttribute('data-theme', newTheme);
         updateToggleButton(newTheme);
@@ -988,9 +1008,6 @@
     const GITHUB_ORG = 'RatelSlop';
     // Cloudflare Edge Proxy: caches aggregated repos & languages with a 3-minute TTL to prevent GitHub rate limits
     const WORKER_ENDPOINT = 'https://api.ratelslop.studio/repos';
-    const CACHE_KEY = 'ratelslop_repos_cache_v6';
-    const CACHE_TIME_KEY = 'ratelslop_repos_cache_time_v6';
-    const CACHE_TTL_MS = 3 * 60 * 1000; // 3 minute cache (real-time freshness)
 
     function escapeHtml(str) {
       if (!str) return '';
@@ -1006,27 +1023,17 @@
     }
 
     async function fetchGitHubRepos() {
-      const cachedData = localStorage.getItem(CACHE_KEY);
-      const cachedTime = localStorage.getItem(CACHE_TIME_KEY);
-      const now = Date.now();
+      // Repository caching is handled by HTTP and the edge, not application storage.
+      const requestOptions = { credentials: 'omit', referrerPolicy: 'no-referrer' };
+      const publicProjects = repos => repos.filter(repo => repo && repo.private === false && typeof repo.name === 'string' && !repo.name.startsWith('.'));
 
-      if (cachedData && cachedTime && (now - parseInt(cachedTime, 10) < CACHE_TTL_MS)) {
-        try {
-          return JSON.parse(cachedData);
-        } catch (e) {
-          // parse error, proceed to network
-        }
-      }
-
-      // Step 1: Query Cloudflare Worker edge proxy (single fast call, pre-aggregated, 0 rate limit)
+      // Step 1: Query the edge proxy without cookies or a Referer header.
       try {
-        const workerRes = await fetch(WORKER_ENDPOINT);
+        const workerRes = await fetch(WORKER_ENDPOINT, requestOptions);
         if (workerRes.ok) {
           const repos = await workerRes.json();
-          if (Array.isArray(repos) && repos.length > 0) {
-            localStorage.setItem(CACHE_KEY, JSON.stringify(repos));
-            localStorage.setItem(CACHE_TIME_KEY, now.toString());
-            return repos;
+          if (Array.isArray(repos)) {
+            return publicProjects(repos);
           }
         }
       } catch (err) {
@@ -1035,15 +1042,16 @@
 
       // Step 2: Fallback to direct GitHub API
       try {
-        const response = await fetch(`https://api.github.com/orgs/${GITHUB_ORG}/repos?sort=pushed&direction=desc&per_page=100`);
+        const response = await fetch(`https://api.github.com/orgs/${GITHUB_ORG}/repos?type=public&sort=pushed&direction=desc&per_page=100`, requestOptions);
         if (!response.ok) {
           throw new Error(`GitHub API error: ${response.status}`);
         }
         const repos = await response.json();
         if (Array.isArray(repos)) {
-          await Promise.all(repos.filter(repo => !repo.name.startsWith('.')).map(async repo => {
+          const projects = publicProjects(repos);
+          await Promise.all(projects.map(async repo => {
             try {
-              const languagesResponse = await fetch(`https://api.github.com/repos/${GITHUB_ORG}/${encodeURIComponent(repo.name)}/languages`);
+              const languagesResponse = await fetch(`https://api.github.com/repos/${GITHUB_ORG}/${encodeURIComponent(repo.name)}/languages`, requestOptions);
               if (!languagesResponse.ok) throw new Error(`GitHub languages API error: ${languagesResponse.status}`);
               const languages = await languagesResponse.json();
               repo.languages = Object.entries(languages)
@@ -1054,17 +1062,10 @@
               repo.languages = repo.language ? [repo.language] : [];
             }
           }));
-          localStorage.setItem(CACHE_KEY, JSON.stringify(repos));
-          localStorage.setItem(CACHE_TIME_KEY, now.toString());
-          return repos;
+          return projects;
         }
       } catch (err) {
         console.warn('Could not fetch GitHub repos:', err);
-        if (cachedData) {
-          try {
-            return JSON.parse(cachedData);
-          } catch (e) {}
-        }
       }
       return null;
     }

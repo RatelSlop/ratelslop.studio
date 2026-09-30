@@ -22,14 +22,27 @@
 
   <!-- Theme check before render -->
   <script>
-    (function() {
-      const storedTheme = localStorage.getItem('theme');
-      if (storedTheme) {
-        document.documentElement.setAttribute('data-theme', storedTheme);
-      } else {
-        const prefersLight = window.matchMedia('(prefers-color-scheme: light)').matches;
-        document.documentElement.setAttribute('data-theme', prefersLight ? 'light' : 'dark');
+    function readPreference(key, allowedValues) {
+      try {
+        const value = localStorage.getItem(key);
+        return allowedValues.includes(value) ? value : null;
+      } catch {
+        return null;
       }
+    }
+
+    function savePreference(key, value) {
+      try {
+        localStorage.setItem(key, value);
+      } catch {
+        // Display controls still work when browser storage is unavailable.
+      }
+    }
+
+    (function() {
+      const storedTheme = readPreference('theme', ['light', 'dark']);
+      const prefersLight = window.matchMedia('(prefers-color-scheme: light)').matches;
+      document.documentElement.setAttribute('data-theme', storedTheme || (prefersLight ? 'light' : 'dark'));
     })();
   </script>
 
@@ -326,6 +339,7 @@
     }
 
     h1.page-title {
+      overflow-wrap: anywhere;
       font-size: clamp(2.5rem, 7vw, 4rem);
       font-weight: 800;
       letter-spacing: -0.04em;
@@ -585,6 +599,7 @@
             <option value="nl">NL</option>
           </select>
         </div>
+        <p id="preference-note" style="font-size: 0.65rem; color: var(--text-dim); max-width: 12rem; text-align: right;">Display choices are saved on this device.</p>
       </div>
     </div>
 
@@ -594,6 +609,7 @@
       <p id="page-desc" class="page-desc">
         Usage conditions, individual project licensing &amp; AI disclaimer.
       </p>
+      <p id="page-date" style="font-size: 0.78rem; color: var(--text-dim);">Last updated: 30 September 2026</p>
     </header>
 
     <!-- Main Content: Semi-Transparent Code Terminal Block -->
@@ -615,15 +631,17 @@
           <!-- Section 1: Acceptance & Non-Commercial Status -->
           <section class="legal-section">
             <span class="section-tag">01 // agreement</span>
-            <h2 id="sec1-title" class="section-title">Acceptance of Terms &amp; Informal Project Status</h2>
+            <h2 id="sec1-title" class="section-title">
+              Scope and Informal Project Status
+            </h2>
             <p id="sec1-p1" class="section-text">
-              By accessing or using ratelslop.studio, its subdomains, or any software, experiments, tools, and demos associated with RatelSlop, you agree to these Terms of Service. If you do not agree, please discontinue using the website and its projects.
+              These terms describe ratelslop.studio and its repository-data endpoint at api.ratelslop.studio/repos. Where a contract is formed, these terms apply only insofar as they are validly incorporated under applicable law. Separate software projects, tools and demos have their own operators, licenses and terms; these hub terms apply to them only if the relevant operator expressly incorporates them.
             </p>
             <p id="sec1-p2" class="section-text">
-              <strong>Informal Status &amp; 'Studios' Display Name:</strong> ratelslop.studio and 'RatelSlop' are not a company, commercial studio, business partnership, or legal corporate entity (no registration with the Dutch KvK or German Handelsregister). The term 'Studios' used in our GitHub organization display name ('RatelSlop Studios') is strictly an informal, creative, and atmospheric moniker. It does not signify a formal business enterprise, partnership, or corporate entity. RatelSlop is solely an informal collaborative hobby banner created by independent private developers for personal learning, experimentation, and non-commercial sharing.
+              <strong>Informal name:</strong> 'RatelSlop' is the creative name used by individual private developers for learning, experimentation and non-commercial sharing, not a separate company or legal entity. 'RatelSlop Studios' is the informal display name of the GitHub organization, not a statement of registered business status. This description does not remove any legal obligations of the individual operators.
             </p>
             <p id="sec1-p3" class="section-text">
-              <strong>Cross-Border &amp; European Framework (NL / DE):</strong> This project is maintained by private developers in the Netherlands and Germany under the domain <code>ratelslop.studio</code>. Under the EU E-Commerce Directive (2000/31/EC) and Dutch Civil Code (art. 3:15d BW), formal corporate registration duties apply to commercial/professional entities. Under German telemedia law (&sect; 5 DDG and &sect; 18 MStV), the concept of &quot;gesch&auml;ftsm&auml;&szlig;ig&quot; can be interpreted broadly to encompass continuous public offerings even without monetary compensation. While this project is strictly non-monetized and private (zero revenue, zero advertising, zero paid subscriptions), we actively recognize this cross-border context. Rather than asserting an unqualified blanket exemption, we provide full transparency regarding our status as private hobbyist developers and maintain direct, accessible electronic contact channels via <a href="mailto:support@ratelslop.studio" style="color: var(--accent);">support@ratelslop.studio</a> and GitHub for any inquiries or legal notices, while safeguarding the private residential addresses of individual developers.
+              <strong>Netherlands and Germany:</strong> The maintainers are private hobby developers in the Netherlands and Germany. Non-commercial status alone does not establish an exemption from statutory provider-information duties. Their applicability, including § 5 DDG and § 18 MStV in Germany, depends on the actual service and its purpose. Where applicable, the legally required operator and address information must be provided. Our electronic contact point is <a href="mailto:support@ratelslop.studio" style="color: var(--accent);">support@ratelslop.studio</a>.
             </p>
             <span class="badge-chip">&#9878; INFORMAL NON-COMMERCIAL HOBBY INITIATIVE</span>
           </section>
@@ -633,13 +651,13 @@
             <span class="section-tag">02 // licensing_model</span>
             <h2 id="sec2-title" class="section-title">Project Licenses &amp; GitHub Repositories</h2>
             <p id="sec2-p1" class="section-text">
-              <strong>Website Presentation &amp; Branding:</strong> The layout, domain name, presentation, and branding associated with ratelslop.studio and RatelSlop belong to the individual makers and contributors behind RatelSlop, with all rights reserved.
+              <strong>Website presentation and third-party materials:</strong> Rights in original site artwork, layout and branding belong to their individual makers and contributors. Third-party components, including the locally hosted JetBrains Mono and Space Grotesk fonts, retain their own copyright and licenses. The fonts are licensed under the SIL Open Font License 1.1; the site's reservation of rights does not replace those licenses.
             </p>
             <p id="sec2-p2" class="section-text">
-              <strong>Individual Project Licenses:</strong> Software projects, repositories, and applications showcased on this website are distributed under their own distinct licenses. <em>The specific license governing code usage, redistribution, modification, attribution, or commercial restrictions is defined individually in the <code>LICENSE</code> file of each respective project repository on GitHub.</em>
+              <strong>Individual project licenses:</strong> Each showcased repository may use an open-source license, a custom license or other express terms. Check its GitHub repository, in particular its <code>LICENSE</code> file, README and any third-party notices, for the permissions and restrictions on use, modification, redistribution and attribution. These hub terms do not amend a project's license.
             </p>
             <p id="sec2-p3" class="section-text">
-              You must consult the repository of the specific project you intend to use or inspect. If a repository does not contain an explicit open-source license, all rights remain reserved to the makers and contributors behind RatelSlop by default. Furthermore, individual software projects and web tools may be deployed independently on distinct external domains (including, but not limited to, schoolnaam.nl, ratelslop.studio, and hooijmaijers.me) or cloud platforms; those services are operated under the responsibility of their respective individual contributors.
+              Where no applicable license grants permission, statutory copyright rules apply, subject to legal exceptions and the limited rights GitHub grants users to view and fork public repositories through its service. Each independently operated project is subject to the responsibility and terms of its actual operator, including when deployed under a separate domain or cloud provider.
             </p>
             <span class="badge-chip">&#128220; LICENSE RULES DEFINED PER GITHUB REPO</span>
           </section>
@@ -649,12 +667,12 @@
             <span class="section-tag">03 // as_is_warranty</span>
             <h2 id="sec3-title" class="section-title">Experimental "As-Is" Nature</h2>
             <p id="sec3-p1" class="section-text">
-              ratelslop.studio serves as a hub for hobby projects, student experiments, and experimental web apps. Everything provided on this website is offered strictly on an <strong>"AS-IS"</strong> and <strong>"AS-AVAILABLE"</strong> basis without warranties of any kind, whether express, implied, statutory, or otherwise.
+              This hub and the projects it describes are experimental hobby work. Where applicable law permits, they are offered <strong>"AS IS"</strong> and <strong>"AS AVAILABLE"</strong>, without an additional contractual guarantee of uninterrupted service, error-free operation or fitness for a particular purpose. Mandatory statutory rights and remedies remain unaffected.
             </p>
             <p id="sec3-p2" class="section-text">
-              We do not guarantee continuous uptime, error-free operation, data retention, or fitness for any particular purpose. Experiments may be updated, altered, or discontinued at any time without prior notice.
+              The hub and its project overview may change or become unavailable. Any changes to a separate project are governed by that project's own terms and applicable law. These statements do not waive mandatory duties concerning existing agreements or personal data.
             </p>
-            <span class="badge-chip alert">&#9888; HOBBY PROJECTS • NO WARRANTY</span>
+            <span class="badge-chip alert">&#9888; EXPERIMENTAL • MANDATORY RIGHTS PRESERVED</span>
           </section>
 
           <!-- Section 4: AI Slop & Machine Generation Disclaimer -->
@@ -662,10 +680,10 @@
             <span class="section-tag">04 // ai_disclaimer</span>
             <h2 id="sec4-title" class="section-title">AI Slop &amp; Output Disclaimer</h2>
             <p id="sec4-p1" class="section-text">
-              Several applications on this platform incorporate artificial intelligence (AI), machine learning models, or automated synthetic content generation (fondly referred to as "AI slop").
+              Some showcased projects may use artificial intelligence, machine learning or automated content generation, informally referred to as "AI slop". The processing and conditions of each such project are described by its operator.
             </p>
             <p id="sec4-p2" class="section-text">
-              You acknowledge that AI models may hallucinate, output erroneous facts, produce unintended results, or generate absurd statements. You are solely responsible for verifying and evaluating any output before relying on it. Never rely on AI slop for legal, medical, financial, or safety-critical decisions.
+              AI output can contain errors, hallucinations or unintended results. Check the output before relying on it, and do not use unverified experimental output for medical, legal, financial or safety-critical decisions. This guidance does not limit mandatory rights or the obligations of the relevant operator.
             </p>
             <span class="badge-chip alert">&#9889; AI OUTPUTS MAY HALLUCINATE</span>
           </section>
@@ -675,7 +693,7 @@
             <span class="section-tag">05 // liability</span>
             <h2 id="sec5-title" class="section-title">Limitation of Liability</h2>
             <p id="sec5-p1" class="section-text">
-              Except in cases including, but not limited to, intentional misconduct (opzet / Vorsatz), gross negligence (grove schuld / grobe Fahrl&auml;ssigkeit), or damages resulting from injury to life, body, or health, the independent individual makers, contributors, and maintainers behind RatelSlop shall not be liable, to the fullest extent otherwise permitted by applicable law, for any direct, indirect, incidental, special, or exemplary damages (including, but not limited to, loss of data, loss of profits, equipment damage, or service interruptions) resulting from your use of or inability to use this website or its projects. This limitation does not affect or exclude any other liability, statutory right, or remedy that cannot be lawfully limited or excluded under mandatory law applicable to you, including the law of your country of habitual residence.
+              Nothing in these terms excludes or limits liability for intentional misconduct (opzet / Vorsatz), gross negligence (grove schuld / grobe Fahrlässigkeit), injury to life, body or health, or any liability, statutory right or remedy that cannot lawfully be excluded or limited. In the event of an ordinarily negligent breach of an essential contractual obligation, any permitted limitation is restricted to reasonably foreseeable loss typical of the agreement. Essential obligations are those necessary to fulfil the agreement and on whose performance the other party may ordinarily rely. Any limitation applies only to the extent permitted by the applicable law, including the law of your country of habitual residence.
             </p>
           </section>
 
@@ -684,7 +702,7 @@
             <span class="section-tag">06 // conduct</span>
             <h2 id="sec6-title" class="section-title">Acceptable Use &amp; Contact</h2>
             <p id="sec6-p1" class="section-text">
-              You agree not to disrupt or attempt to compromise the integrity, availability, or security of this website. For questions, responsible disclosure, security notifications, copyright concerns, or legal inquiries, you can reach the maintainers electronically via email at <a href="mailto:support@ratelslop.studio" style="color: var(--accent);">support@ratelslop.studio</a> or via GitHub (<a href="https://github.com/RatelSlop" target="_blank" rel="noopener noreferrer" style="color: var(--accent);">github.com/RatelSlop</a>). We reserve the right to revise these Terms of Service at any time by updating this page.
+              Do not disrupt or compromise the security, integrity or availability of this hub. Send questions, responsible disclosures, copyright concerns or legal enquiries to <a href="mailto:support@ratelslop.studio" style="color: var(--accent);">support@ratelslop.studio</a> or our GitHub organization. Updates to these terms are published here with their revision date. Changes affect existing agreements only insofar as applicable law and the relevant agreement permit; publication alone does not retroactively replace agreed terms.
             </p>
           </section>
 
@@ -719,63 +737,70 @@
       en: {
         pageTitle: 'Terms of Service',
         pageDesc: 'Usage conditions, individual project licensing & AI disclaimer.',
-        sec1Title: 'Acceptance of Terms & Informal Project Status',
-        sec1P1: 'By accessing or using ratelslop.studio, its subdomains, or any software, experiments, tools, and demos associated with RatelSlop, you agree to these Terms of Service. If you do not agree, please discontinue using the website and its projects.',
-        sec1P2: "<strong>Informal Status & 'Studios' Display Name:</strong> ratelslop.studio and 'RatelSlop' are not a company, commercial studio, business partnership, or legal corporate entity (no registration with the Dutch KvK or German Handelsregister). The term 'Studios' used in our GitHub organization display name ('RatelSlop Studios') is strictly an informal, creative, and atmospheric moniker. It does not signify a formal business enterprise, partnership, or corporate entity. RatelSlop is solely an informal collaborative hobby banner created by independent private developers for personal learning, experimentation, and non-commercial sharing.",
-        sec1P3: '<strong>Cross-Border & European Framework (NL / DE):</strong> This project is maintained by private developers in the Netherlands and Germany under the domain <code>ratelslop.studio</code>. Under the EU E-Commerce Directive (2000/31/EC) and Dutch Civil Code (art. 3:15d BW), formal corporate registration duties apply to commercial/professional entities. Under German telemedia law (&sect; 5 DDG and &sect; 18 MStV), the concept of "geschäftsmäßig" can be interpreted broadly to encompass continuous public offerings even without monetary compensation. While this project is strictly non-monetized and private (zero revenue, zero advertising, zero paid subscriptions), we actively recognize this cross-border context. Rather than asserting an unqualified blanket exemption, we provide full transparency regarding our status as private hobbyist developers and maintain direct, accessible electronic contact channels via <a href="mailto:support@ratelslop.studio" style="color: var(--accent);">support@ratelslop.studio</a> and GitHub for any inquiries or legal notices, while safeguarding the private residential addresses of individual developers.',
+        sec1Title: "Scope and Informal Project Status",
+        sec1P1: "These terms describe ratelslop.studio and its repository-data endpoint at api.ratelslop.studio/repos. Where a contract is formed, these terms apply only insofar as they are validly incorporated under applicable law. Separate software projects, tools and demos have their own operators, licenses and terms; these hub terms apply to them only if the relevant operator expressly incorporates them.",
+        sec1P2: "<strong>Informal name:</strong> 'RatelSlop' is the creative name used by individual private developers for learning, experimentation and non-commercial sharing, not a separate company or legal entity. 'RatelSlop Studios' is the informal display name of the GitHub organization, not a statement of registered business status. This description does not remove any legal obligations of the individual operators.",
+        sec1P3: "<strong>Netherlands and Germany:</strong> The maintainers are private hobby developers in the Netherlands and Germany. Non-commercial status alone does not establish an exemption from statutory provider-information duties. Their applicability, including § 5 DDG and § 18 MStV in Germany, depends on the actual service and its purpose. Where applicable, the legally required operator and address information must be provided. Our electronic contact point is <a href=\"mailto:support@ratelslop.studio\" style=\"color: var(--accent);\">support@ratelslop.studio</a>.",
         sec2Title: 'Project Licenses & GitHub Repositories',
-        sec2P1: '<strong>Website Presentation & Branding:</strong> The layout, domain name, presentation, and branding associated with ratelslop.studio and RatelSlop belong to the individual makers and contributors behind RatelSlop, with all rights reserved.',
-        sec2P2: '<strong>Individual Project Licenses:</strong> Software projects, repositories, and applications showcased on this website are distributed under their own distinct licenses. <em>The specific license governing code usage, redistribution, modification, attribution, or commercial restrictions is defined individually in the <code>LICENSE</code> file of each respective project repository on GitHub.</em>',
-        sec2P3: 'You must consult the repository of the specific project you intend to use or inspect. If a repository does not contain an explicit open-source license, all rights remain reserved to the makers and contributors behind RatelSlop by default. Furthermore, individual software projects and web tools may be deployed independently on distinct external domains (including, but not limited to, schoolnaam.nl, ratelslop.studio, and hooijmaijers.me) or cloud platforms; those services are operated under the responsibility of their respective individual contributors.',
+        sec2P1: "<strong>Website presentation and third-party materials:</strong> Rights in original site artwork, layout and branding belong to their individual makers and contributors. Third-party components, including the locally hosted JetBrains Mono and Space Grotesk fonts, retain their own copyright and licenses. The fonts are licensed under the SIL Open Font License 1.1; the site's reservation of rights does not replace those licenses.",
+        sec2P2: "<strong>Individual project licenses:</strong> Each showcased repository may use an open-source license, a custom license or other express terms. Check its GitHub repository, in particular its <code>LICENSE</code> file, README and any third-party notices, for the permissions and restrictions on use, modification, redistribution and attribution. These hub terms do not amend a project's license.",
+        sec2P3: "Where no applicable license grants permission, statutory copyright rules apply, subject to legal exceptions and the limited rights GitHub grants users to view and fork public repositories through its service. Each independently operated project is subject to the responsibility and terms of its actual operator, including when deployed under a separate domain or cloud provider.",
         sec3Title: 'Experimental "As-Is" Nature',
-        sec3P1: 'ratelslop.studio serves as a hub for hobby projects, student experiments, and experimental web apps. Everything provided on this website is offered strictly on an <strong>"AS-IS"</strong> and <strong>"AS-AVAILABLE"</strong> basis without warranties of any kind, whether express, implied, statutory, or otherwise.',
-        sec3P2: 'We do not guarantee continuous uptime, error-free operation, data retention, or fitness for any particular purpose. Experiments may be updated, altered, or discontinued at any time without prior notice.',
+        sec3P1: "This hub and the projects it describes are experimental hobby work. Where applicable law permits, they are offered <strong>\"AS IS\"</strong> and <strong>\"AS AVAILABLE\"</strong>, without an additional contractual guarantee of uninterrupted service, error-free operation or fitness for a particular purpose. Mandatory statutory rights and remedies remain unaffected.",
+        sec3P2: "The hub and its project overview may change or become unavailable. Any changes to a separate project are governed by that project's own terms and applicable law. These statements do not waive mandatory duties concerning existing agreements or personal data.",
         sec4Title: 'AI Slop & Output Disclaimer',
-        sec4P1: 'Several applications on this platform incorporate artificial intelligence (AI), machine learning models, or automated synthetic content generation (fondly referred to as "AI slop").',
-        sec4P2: 'You acknowledge that AI models may hallucinate, output erroneous facts, produce unintended results, or generate absurd statements. You are solely responsible for verifying and evaluating any output before relying on it. Never rely on AI slop for legal, medical, financial, or safety-critical decisions.',
+        sec4P1: "Some showcased projects may use artificial intelligence, machine learning or automated content generation, informally referred to as \"AI slop\". The processing and conditions of each such project are described by its operator.",
+        sec4P2: "AI output can contain errors, hallucinations or unintended results. Check the output before relying on it, and do not use unverified experimental output for medical, legal, financial or safety-critical decisions. This guidance does not limit mandatory rights or the obligations of the relevant operator.",
         sec5Title: 'Limitation of Liability',
-        sec5P1: 'Except in cases including, but not limited to, intentional misconduct (opzet / Vorsatz), gross negligence (grove schuld / grobe Fahrlässigkeit), or damages resulting from injury to life, body, or health, the independent individual makers, contributors, and maintainers behind RatelSlop shall not be liable, to the fullest extent otherwise permitted by applicable law, for any direct, indirect, incidental, special, or exemplary damages (including, but not limited to, loss of data, loss of profits, equipment damage, or service interruptions) resulting from your use of or inability to use this website or its projects. This limitation does not affect or exclude any other liability, statutory right, or remedy that cannot be lawfully limited or excluded under mandatory law applicable to you, including the law of your country of habitual residence.',
+        sec5P1: "Nothing in these terms excludes or limits liability for intentional misconduct (opzet / Vorsatz), gross negligence (grove schuld / grobe Fahrlässigkeit), injury to life, body or health, or any liability, statutory right or remedy that cannot lawfully be excluded or limited. In the event of an ordinarily negligent breach of an essential contractual obligation, any permitted limitation is restricted to reasonably foreseeable loss typical of the agreement. Essential obligations are those necessary to fulfil the agreement and on whose performance the other party may ordinarily rely. Any limitation applies only to the extent permitted by the applicable law, including the law of your country of habitual residence.",
         sec6Title: 'Acceptable Use & Contact',
-        sec6P1: 'You agree not to disrupt or attempt to compromise the integrity, availability, or security of this website. For questions, responsible disclosure, security notifications, copyright concerns, or legal inquiries, you can reach the maintainers electronically via email at <a href="mailto:support@ratelslop.studio" style="color: var(--accent);">support@ratelslop.studio</a> or via GitHub (<a href="https://github.com/RatelSlop" target="_blank" rel="noopener noreferrer" style="color: var(--accent);">github.com/RatelSlop</a>). We reserve the right to revise these Terms of Service at any time by updating this page.',
+        sec6P1: "Do not disrupt or compromise the security, integrity or availability of this hub. Send questions, responsible disclosures, copyright concerns or legal enquiries to <a href=\"mailto:support@ratelslop.studio\" style=\"color: var(--accent);\">support@ratelslop.studio</a> or our GitHub organization. Updates to these terms are published here with their revision date. Changes affect existing agreements only insofar as applicable law and the relevant agreement permit; publication alone does not retroactively replace agreed terms.",
+        pageDate: 'Last updated: 30 September 2026',
+        preferenceNote: 'Display choices are saved on this device.',
         themeLight: 'Light',
         themeDark: 'Dark'
       },
       nl: {
         pageTitle: 'Gebruiksvoorwaarden (Terms)',
         pageDesc: 'Voorwaarden, projectlicenties per GitHub-repo & AI disclaimer.',
-        sec1Title: 'Aanvaarding van de Voorwaarden & Projectstatus',
-        sec1P1: 'Door het bezoeken of gebruiken van ratelslop.studio, eventuele subdomeinen, of software, experimenten, tools en demo’s verbonden aan RatelSlop, ga je akkoord met deze Gebruiksvoorwaarden. Indien je niet akkoord gaat, verzoeken we je het gebruik van de site en projecten te staken.',
-        sec1P2: "<strong>Informele status & 'Studios'-aanduiding:</strong> ratelslop.studio en 'RatelSlop' zijn géén bedrijf, commerciële studio, onderneming of formele rechtspersoon (geen inschrijving bij de KvK of het Handelsregister). De toevoeging 'Studios' zoals die op onze GitHub-organisatie ('RatelSlop Studios') verschijnt, is louter een informele, creatieve en sfeervolle geuzennaam. Het duidt op geen enkele wijze op een formele zakelijke entiteit, maatschap of studio-onderneming. RatelSlop is uitsluitend een informeel verzamelproject van onafhankelijke particuliere hobby-ontwikkelaars voor educatieve doeleinden, experimenten en niet-commerciële uitwisseling.",
-        sec1P3: '<strong>Grensoverschrijdend & Europees Kader (NL / DE):</strong> Dit project wordt onderhouden door particuliere ontwikkelaars in Nederland en Duitsland onder het domein <code>ratelslop.studio</code>. Volgens de EU E-Commerce Richtlijn (2000/31/EG) en het Nederlands Burgerlijk Wetboek (art. 3:15d BW) gelden formele bedrijfs- en handelsregisterplichten voor commerciële beroeps- en bedrijfsmatige partijen. Naar Duits recht (§ 5 DDG en § 18 MStV) kan het begrip "geschäftsmäßig" echter ruim worden uitgelegd en ook van toepassing zijn op doorlopend openbaar aangeboden telemedia zonder directe betaling. Hoewel dit project zuiver particulier en niet-commercieel is (geen inkomsten, geen advertenties, geen betaalde diensten), erkennen wij de grensoverschrijdende context. Om die reden bieden wij op deze pagina volledige transparantie over onze hoedanigheid als particuliere ontwikkelaars en stellen wij een direct elektronisch aanspreekpunt beschikbaar via <a href="mailto:support@ratelslop.studio" style="color: var(--accent);">support@ratelslop.studio</a> en GitHub voor juridische verzoeken of meldingen, zonder dat van individuele natuurlijke personen geëist kan worden hun privé-woonadres openbaar op het internet te publiceren.',
+        sec1Title: "Reikwijdte en Informele Projectstatus",
+        sec1P1: "Deze voorwaarden beschrijven ratelslop.studio en het endpoint voor repository-gegevens op api.ratelslop.studio/repos. Als een overeenkomst tot stand komt, gelden deze voorwaarden alleen voor zover zij volgens het toepasselijke recht rechtsgeldig onderdeel daarvan zijn geworden. Afzonderlijke softwareprojecten, tools en demo's hebben eigen beheerders, licenties en voorwaarden; deze hubvoorwaarden gelden daarvoor alleen als de betreffende beheerder ze uitdrukkelijk van toepassing verklaart.",
+        sec1P2: "<strong>Informele naam:</strong> 'RatelSlop' is de creatieve naam die individuele particuliere ontwikkelaars gebruiken voor leren, experimenteren en niet-commerciële uitwisseling, geen afzonderlijk bedrijf of rechtspersoon. 'RatelSlop Studios' is de informele weergavenaam van de GitHub-organisatie, geen aanduiding van een geregistreerde onderneming. Deze omschrijving neemt wettelijke verplichtingen van de individuele beheerders niet weg.",
+        sec1P3: "<strong>Nederland en Duitsland:</strong> De beheerders zijn particuliere hobby-ontwikkelaars in Nederland en Duitsland. Niet-commerciële status geeft op zichzelf geen vrijstelling van wettelijke informatieplichten voor aanbieders. De toepasselijkheid, waaronder § 5 DDG en § 18 MStV in Duitsland, hangt af van de daadwerkelijke dienst en het doel daarvan. Waar van toepassing moeten de wettelijk vereiste beheerders- en adresgegevens worden vermeld. Ons elektronische contactpunt is <a href=\"mailto:support@ratelslop.studio\" style=\"color: var(--accent);\">support@ratelslop.studio</a>.",
         sec2Title: 'Projectlicenties & GitHub Repositories',
-        sec2P1: '<strong>Website Vormgeving & Naam:</strong> De vormgeving, domeinnaam, lay-out en naamsvoering verbonden aan ratelslop.studio en RatelSlop berusten bij de respectieve individuele makers en bijdragers achter RatelSlop (alle rechten voorbehouden).',
-        sec2P2: '<strong>Individuele Projectlicenties:</strong> Softwareprojecten, repositories en applicaties die op deze website worden getoond, vallen elk onder hun eigen specifieke licentievoorwaarden. <em>De toepasselijke licentie m.b.t. codegebruik, herdistributie, wijzigingen, naamsvermelding of commerciële restricties staat expliciet gedefinieerd in het betreffende <code>LICENSE</code>-bestand in de bijbehorende GitHub repository.</em>',
-        sec2P3: 'Raadpleeg altijd de repository van het specifieke project dat je wilt gebruiken of forken. Bevat een repository geen expliciete open-source licentie, dan berusten alle rechten standaard bij de makers en bijdragers achter RatelSlop. Bovendien kunnen individuele softwareprojecten en webtools zelfstandig worden gehost op afzonderlijke externe domeinen (waaronder, maar niet uitsluitend, schoolnaam.nl, ratelslop.studio en hooijmaijers.me) of cloudplatforms; die diensten worden aangeboden onder de eigen verantwoordelijkheid van de betreffende individuele bijdragers.',
+        sec2P1: "<strong>Websitevormgeving en materiaal van derden:</strong> Rechten op oorspronkelijke vormgeving, lay-out en naamvoering van de site berusten bij de individuele makers en bijdragers. Componenten van derden, waaronder de lokaal gehoste lettertypen JetBrains Mono en Space Grotesk, behouden hun eigen auteursrecht en licenties. De lettertypen vallen onder de SIL Open Font License 1.1; het rechtenvoorbehoud van de site vervangt die licenties niet.",
+        sec2P2: "<strong>Individuele projectlicenties:</strong> Elke getoonde repository kan een opensource-licentie, maatwerklicentie of andere uitdrukkelijke voorwaarden gebruiken. Raadpleeg de GitHub-repository, met name het <code>LICENSE</code>-bestand, de README en eventuele vermeldingen over materiaal van derden, voor de toestemming en beperkingen voor gebruik, wijziging, herdistributie en naamsvermelding. Deze hubvoorwaarden wijzigen de licentie van een project niet.",
+        sec2P3: "Als geen toepasselijke licentie toestemming verleent, gelden de wettelijke auteursrechtregels, met inachtneming van wettelijke uitzonderingen en de beperkte rechten die GitHub gebruikers geeft om openbare repositories via zijn dienst te bekijken en te forken. Elk zelfstandig beheerd project valt onder de verantwoordelijkheid en voorwaarden van zijn daadwerkelijke beheerder, ook bij hosting op een afzonderlijk domein of cloudplatform.",
         sec3Title: 'Experimenteel "As-Is" Karakter (Hobby)',
-        sec3P1: 'ratelslop.studio fungeert als hub voor hobbyprojecten, experimenten en prototypes. Alles op deze website wordt uitsluitend aangeboden op <strong>"AS-IS"</strong> (in de staat waarin het zich bevindt) en <strong>"AS-AVAILABLE"</strong> basis, zonder enige vorm van garantie op uptime, bug-vrije werking of geschiktheid voor enig specifiek doel.',
-        sec3P2: 'Projecten kunnen op ieder moment zonder voorafgaande kennisgeving worden aangepast, gereset of offline worden gehaald.',
+        sec3P1: "Deze hub en de beschreven projecten zijn experimenteel hobbywerk. Waar het toepasselijke recht dit toestaat, worden zij aangeboden <strong>\"AS IS\"</strong> (in de huidige staat) en <strong>\"AS AVAILABLE\"</strong>, zonder aanvullende contractuele garantie van ononderbroken beschikbaarheid, foutloze werking of geschiktheid voor een bepaald doel. Dwingende wettelijke rechten en rechtsmiddelen blijven gelden.",
+        sec3P2: "De hub en het projectenoverzicht kunnen veranderen of onbeschikbaar worden. Wijzigingen van afzonderlijke projecten vallen onder hun eigen voorwaarden en het toepasselijke recht. Deze uitspraken doen geen afstand van dwingende verplichtingen voor bestaande overeenkomsten of persoonsgegevens.",
         sec4Title: 'AI Slop & Machine-Generatie Disclaimer',
-        sec4P1: 'Diverse applicaties op deze site maken gebruik van kunstmatige intelligentie (AI), neurale modellen of geautomatiseerde generatie-algoritmes (met een knipoog aangeduid als "AI slop").',
-        sec4P2: 'Je erkent dat AI-modellen kunnen hallucineren, feitelijk onjuiste gegevens kunnen genereren of onvoorspelbare resultaten kunnen leveren. Je bent te allen tijde zelf verantwoordelijk voor het controleren en toepassen van de output. Vertrouw nooit op AI slop voor medische, juridische, financiële of veiligheidskritische beslissingen.',
+        sec4P1: "Sommige getoonde projecten kunnen kunstmatige intelligentie, machine learning of geautomatiseerde contentgeneratie gebruiken, informeel aangeduid als \"AI slop\". De beheerder beschrijft de verwerking en voorwaarden van elk dergelijk project.",
+        sec4P2: "AI-output kan fouten, hallucinaties of onbedoelde resultaten bevatten. Controleer output voordat je erop vertrouwt en gebruik ongeverifieerde experimentele output niet voor medische, juridische, financiële of veiligheidskritische beslissingen. Deze aanwijzing beperkt geen dwingende rechten of verplichtingen van de betreffende beheerder.",
         sec5Title: 'Beperking van Aansprakelijkheid',
-        sec5P1: 'Met uitzondering van gevallen waaronder, maar niet beperkt tot, opzet (Vorsatz), bewuste roekeloosheid of grove schuld (grobe Fahrlässigkeit), alsmede schade voortvloeiend uit letsel aan leven, lichaam of gezondheid, zijn de onafhankelijke individuele makers, bijdragers en beheerders achter RatelSlop, voor zover overigens maximaal toegestaan door het toepasselijke recht, op geen enkele wijze aansprakelijk voor enige directe, indirecte, incidentele of gevolgschade (waaronder, maar niet beperkt tot, dataverlies, hardwarefouten, gederfde winst of servicestoringen) die voortvloeit uit het gebruik of het niet kunnen gebruiken van deze website of getoonde projecten. Deze beperking doet niets af aan enige andere aansprakelijkheid, wettelijke rechten of rechtsmiddelen die niet rechtmatig kunnen worden beperkt of uitgesloten op grond van dwingend recht dat op jou van toepassing is, met inbegrip van het recht van het land waar je je gewone verblijfplaats hebt.',
+        sec5P1: "Niets in deze voorwaarden sluit aansprakelijkheid uit of beperkt deze voor opzet (Vorsatz), grove schuld (grobe Fahrlässigkeit), letsel aan leven, lichaam of gezondheid, of aansprakelijkheid, wettelijke rechten of rechtsmiddelen die niet rechtmatig kunnen worden uitgesloten of beperkt. Bij een gewoon nalatige schending van een essentiële contractuele verplichting is een toegestane beperking uitsluitend beperkt tot redelijkerwijs voorzienbare schade die kenmerkend is voor de overeenkomst. Essentiële verplichtingen zijn verplichtingen die nodig zijn om de overeenkomst uit te voeren en op de nakoming waarvan de wederpartij gewoonlijk mag vertrouwen. Elke beperking geldt alleen voor zover het toepasselijke recht die toestaat, waaronder het recht van het land waar je je gewone verblijfplaats hebt.",
         sec6Title: 'Toegestaan Gebruik & Contact',
-        sec6P1: 'Het is niet toegestaan de website of onderliggende infrastructuur te overbelasten, te verstoren of te misbruiken. Voor vragen, responsible disclosure, beveiligingsmeldingen, auteursrechtvragen of juridische verzoeken kun je elektronisch contact opnemen met de beheerders via e-mail op <a href="mailto:support@ratelslop.studio" style="color: var(--accent);">support@ratelslop.studio</a> of via GitHub (<a href="https://github.com/RatelSlop" target="_blank" rel="noopener noreferrer" style="color: var(--accent);">github.com/RatelSlop</a>). Wij behouden ons het recht voor deze voorwaarden tussentijds te actualiseren.',
+        sec6P1: "Verstoor of ondermijn de beveiliging, integriteit of beschikbaarheid van deze hub niet. Stuur vragen, responsible disclosure-meldingen, auteursrechtvragen of juridische verzoeken naar <a href=\"mailto:support@ratelslop.studio\" style=\"color: var(--accent);\">support@ratelslop.studio</a> of onze GitHub-organisatie. Wijzigingen van deze voorwaarden worden hier met hun revisiedatum gepubliceerd. Wijzigingen gelden voor bestaande overeenkomsten alleen voor zover het toepasselijke recht en de betreffende overeenkomst dit toestaan; publicatie vervangt overeengekomen voorwaarden niet met terugwerkende kracht.",
+        pageDate: 'Laatst bijgewerkt: 30 september 2026',
+        preferenceNote: 'Weergavekeuzes worden op dit apparaat bewaard.',
         themeLight: 'Licht',
         themeDark: 'Donker'
       }
     };
 
-    let currentLang = localStorage.getItem('lang') || 'en';
+    let currentLang = readPreference('lang', ['en', 'nl']) || 'en';
 
-    function applyLanguage(lang) {
+    function applyLanguage(lang, remember = false) {
+      lang = Object.hasOwn(TRANSLATIONS, lang) ? lang : 'en';
       currentLang = lang;
-      localStorage.setItem('lang', lang);
+      if (remember) savePreference('lang', lang);
       document.documentElement.lang = lang;
 
       const t = TRANSLATIONS[lang] || TRANSLATIONS.en;
+      document.getElementById('preference-note').textContent = t.preferenceNote;
       document.getElementById('page-title').textContent = t.pageTitle;
       document.getElementById('page-desc').textContent = t.pageDesc;
+      document.getElementById('page-date').textContent = t.pageDate;
       document.getElementById('sec1-title').textContent = t.sec1Title;
       document.getElementById('sec1-p1').textContent = t.sec1P1;
       const sec1P2 = document.getElementById('sec1-p2');
@@ -810,7 +835,7 @@
 
     const langSelect = document.getElementById('lang-select');
     langSelect.addEventListener('change', (e) => {
-      applyLanguage(e.target.value);
+      applyLanguage(e.target.value, true);
     });
 
     // Theme toggle
@@ -839,7 +864,7 @@
       const activeTheme = document.documentElement.getAttribute('data-theme');
       const targetTheme = activeTheme === 'light' ? 'dark' : 'light';
       document.documentElement.setAttribute('data-theme', targetTheme);
-      localStorage.setItem('theme', targetTheme);
+      savePreference('theme', targetTheme);
       updateToggleButton(targetTheme);
     });
 

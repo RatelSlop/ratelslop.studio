@@ -22,14 +22,27 @@
 
   <!-- Theme check before render -->
   <script>
-    (function() {
-      const storedTheme = localStorage.getItem('theme');
-      if (storedTheme) {
-        document.documentElement.setAttribute('data-theme', storedTheme);
-      } else {
-        const prefersLight = window.matchMedia('(prefers-color-scheme: light)').matches;
-        document.documentElement.setAttribute('data-theme', prefersLight ? 'light' : 'dark');
+    function readPreference(key, allowedValues) {
+      try {
+        const value = localStorage.getItem(key);
+        return allowedValues.includes(value) ? value : null;
+      } catch {
+        return null;
       }
+    }
+
+    function savePreference(key, value) {
+      try {
+        localStorage.setItem(key, value);
+      } catch {
+        // Display controls still work when browser storage is unavailable.
+      }
+    }
+
+    (function() {
+      const storedTheme = readPreference('theme', ['light', 'dark']);
+      const prefersLight = window.matchMedia('(prefers-color-scheme: light)').matches;
+      document.documentElement.setAttribute('data-theme', storedTheme || (prefersLight ? 'light' : 'dark'));
     })();
   </script>
 
@@ -575,6 +588,7 @@
             <option value="nl">NL</option>
           </select>
         </div>
+        <p id="preference-note" style="font-size: 0.65rem; color: var(--text-dim); max-width: 12rem; text-align: right;">Display choices are saved on this device.</p>
       </div>
     </div>
 
@@ -584,6 +598,7 @@
       <p id="page-desc" class="page-desc">
         No analytics. No tracking cookies. Minimal by design.
       </p>
+      <p id="page-date" style="font-size: 0.78rem; color: var(--text-dim);">Last updated: 30 September 2026</p>
     </header>
 
     <!-- Main Content: Semi-Transparent Code Terminal Block -->
@@ -597,7 +612,7 @@
             <span class="terminal-title">// legal / privacy_policy.md</span>
           </div>
           <div class="terminal-meta">
-            <span>GDPR / AVG / DSGVO COMPLIANT &bull; NO_TRACKERS: TRUE</span>
+            <span>NO_ADVERTISING &bull; NO_TRACKING_SCRIPTS</span>
           </div>
         </div>
 
@@ -607,7 +622,7 @@
             <span class="section-tag">01 // philosophy</span>
             <h2 id="sec1-title" class="section-title">Privacy-First Architecture</h2>
             <p id="sec1-p1" class="section-text">
-              ratelslop.studio is a non-commercial project hub maintained as an informal personal hobby portfolio by independent individual developers under the collective moniker 'RatelSlop'. 'RatelSlop' is not a company, commercial studio, or corporate entity; the word 'Studios' appearing in our GitHub organization display name ('RatelSlop Studios') is purely an informal, atmospheric handle. We believe web browsing should be private and clean: zero advertising networks, zero tracking cookies, and zero behavioral telemetry.
+              ratelslop.studio is a non-commercial hobby project hub maintained by independent individual developers under the informal creative name 'RatelSlop'. RatelSlop is not a company or legal entity; 'RatelSlop Studios' is the informal display name of our GitHub organization. We do not install advertising networks, analytics scripts, tracking cookies, or behavioural tracking on this hub. Technical connection data and messages sent to us are processed as described below.
             </p>
             <span class="badge-chip">&#10003; 0 TRACKING COOKIES</span>
             <span class="badge-chip">&#9878; NON-COMMERCIAL HOBBY PORTFOLIO</span>
@@ -618,15 +633,13 @@
             <span class="section-tag">02 // client_storage</span>
             <h2 id="sec2-title" class="section-title">Functional Local Storage</h2>
             <p id="sec2-p1" class="section-text">
-              We do not store cookies on your device. We use your browser's standard <code>localStorage</code> strictly for essential functional preferences requested by you:
+              The site's code does not set cookies. Browser localStorage is used to remember display choices after you select them. The controls tell you that your choices are saved on this device.
             </p>
             <p id="sec2-p2" class="section-text">
-              &bull; <code>theme</code>: Remembers your dark mode / light mode selection.<br>
-              &bull; <code>lang</code>: Remembers your preferred display language (EN / NL).<br>
-              &bull; <code>ratelslop_repos_cache_v6</code> and <code>ratelslop_repos_cache_time_v6</code>: Store public repository information, including programming languages and configured website URLs, and its timestamp locally. Cached data is reused for up to 3 minutes to avoid unnecessary network requests; the stored values remain until replaced or cleared from your browser.
+              • <code>theme</code>: Your selected light or dark theme.<br>• <code>lang</code>: Your selected language (EN or NL).<br>These values are not sent to our APIs and remain until you change them or clear this site's browser data. If storage is blocked, the controls still work for the current page. Repository information is not read from or written to localStorage or sessionStorage. Older site versions may have left unused <code>ratelslop_repos_cache_*</code> and <code>ratelslop_repos_cache_time_*</code> entries, which you can remove by clearing site data. Your browser may cache files and API responses through its standard HTTP cache.
             </p>
             <p id="sec2-p3" class="section-text">
-              This data stays exclusively on your own device and is never transmitted to us or third parties. Under the EU ePrivacy Directive, the Dutch Telecommunications Act (art. 11.7a), and the German TDDDG (&sect; 25 Abs. 2 Nr. 2), strictly functional storage requested by the user does not require a cookie banner.
+              Remembering your explicitly selected display preferences supports the functionality you request. We rely on the functional-storage exceptions in Article 11.7a of the Dutch Telecommunications Act and § 25(2)(2) TDDDG, read with the EU ePrivacy Directive. This does not provide an exemption for unrelated tracking or additional storage purposes.
             </p>
             <span class="badge-chip">&#9881; FUNCTIONAL STORAGE ONLY</span>
           </section>
@@ -636,10 +649,10 @@
             <span class="section-tag">03 // infrastructure</span>
             <h2 id="sec3-title" class="section-title">Hosting &amp; Server Logs</h2>
             <p id="sec3-p1" class="section-text">
-              This website is statically hosted via GitHub Pages (operated by GitHub Inc. / Microsoft Corporation, certified under the EU-U.S. Data Privacy Framework). When you visit any page, the hosting infrastructure automatically processes technical connection data (such as your IP address, browser user-agent, and request timestamps) in transient server access logs to deliver web pages securely and defend against denial-of-service (DDoS) attacks.
+              The hub's HTML, images and fonts are served through GitHub Pages (GitHub, Inc., United States, a Microsoft affiliate). GitHub processes technical connection data such as your IP address, browser headers, requested resource and request time to provide and secure the hosting service. We do not operate a separate visitor-account, marketing or profiling database on this hub.
             </p>
             <p id="sec3-p2" class="section-text">
-              <strong>Legal Basis &amp; Retention Period:</strong> The legal basis for this technical logging by our hosting provider is <strong>legitimate interest</strong> (Article 6(1)(f) GDPR / DSGVO) to ensure network stability, system resilience, security diagnostics, and DDoS mitigation. Server access logs are retained by GitHub in accordance with their own infrastructure and data retention policies, over which we as developers have no control or access; please refer to the <a href="https://docs.github.com/en/site-policy/privacy-policies/github-privacy-statement" target="_blank" rel="noopener noreferrer" style="color: var(--accent);">GitHub Privacy Statement</a> for current details.
+              <strong>Purpose, legal basis and retention:</strong> We use this hosting on the basis of our legitimate interest in making a secure, reliable public project overview available (Article 6(1)(f) GDPR). GitHub also processes data for its own service and security purposes under its own policy. Its log retention depends on the processing purpose and applicable legal obligations; the repository does not establish a fixed retention period for GitHub server logs. See the <a href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement" target="_blank" rel="noopener noreferrer" style="color: var(--accent);">GitHub Privacy Statement</a> for provider processing, retention and international-transfer information.
             </p>
           </section>
 
@@ -648,22 +661,33 @@
             <span class="section-tag">04 // external_services</span>
             <h2 id="sec4-title" class="section-title">Cloudflare Edge Proxy, GitHub API &amp; Project Hosting</h2>
             <p id="sec4-p1" class="section-text">
-              <strong>Cloudflare Edge Proxy &amp; GitHub API:</strong> To ensure high-speed loading and protect visitors from client-side GitHub API rate limits, this website queries our edge caching proxy worker (<code>api.ratelslop.studio/repos</code>, operated via Cloudflare Workers / Cloudflare Inc., USA, certified under the EU-U.S. Data Privacy Framework). When loading repository data, your technical connection metadata (such as IP address and request headers) is processed by Cloudflare at the network edge on the legal basis of our legitimate interest (Article 6(1)(f) GDPR / DSGVO) in reliable, performant content delivery and rate-limit mitigation. The edge worker aggregates public repository metadata and programming languages server-to-server from GitHub Inc. (USA) and caches the response for 3 minutes, so your IP address is not repeatedly transmitted to GitHub. If the edge proxy is temporarily unreachable, the browser may fall back to direct GitHub API requests.<br><br><strong>Showcased Projects &amp; Independent External Hosting:</strong> While public repositories belonging to our GitHub organization are dynamically displayed on this central hub, the tools, applications, and live demos themselves are not necessarily hosted on <code>ratelslop.studio</code>. Individual contributors within the collective independently maintain and host their own projects on various infrastructure providers (such as Cloudflare Pages/Workers under external domains including, but not limited to, <code>schoolnaam.nl</code>, <code>ratelslop.studio</code>, and <code>hooijmaijers.me</code>). Clicking on project demo links navigates you away from this hub to external infrastructure. We do not manage, control, or assume responsibility for data processing on such external services; please consult the privacy policy and hosting documentation of the respective external project or domain.
+              <strong>Repository requests:</strong> The homepage requests public project metadata from <code>https://api.ratelslop.studio/repos</code>, hosted by Cloudflare Workers (Cloudflare, Inc., United States). Cloudflare receives your IP address, request time, requested URL and technical headers to deliver and secure the response. Our legal basis is Article 6(1)(f) GDPR: a reliable, current project overview with fewer upstream requests. The Worker queries public GitHub repositories and languages and uses a shared edge cache with a three-minute freshness period. Cloudflare may add visitor-IP headers to server-to-server subrequests; the proxy is not a guarantee of anonymity towards GitHub. If the proxy request fails or returns invalid data, the browser requests repository and language data directly from <code>api.github.com</code> (GitHub, Inc., United States), which then receives your IP address and technical browser headers. Those fallback requests serve the same purpose and legal basis. The browser API requests omit credentials and the Referer header. The Worker caches project metadata, not visitor identifiers.
+            </p>
+            <p id="sec4-p2" class="section-text">
+              <strong>Logs and international transfers:</strong> The three-minute response cache is separate from provider logs. Cloudflare processes network and security data under the <a href="https://www.cloudflare.com/privacypolicy/" target="_blank" rel="noopener noreferrer" style="color: var(--accent);">Cloudflare Privacy Policy</a>. Depending on deployed account settings, maintainers may also access diagnostic request information through Workers Logs or live diagnostics. Workers Logs retention depends on the plan and configuration; see the <a href="https://developers.cloudflare.com/workers/observability/logs/workers-logs/" target="_blank" rel="noopener noreferrer" style="color: var(--accent);">Workers Logs documentation</a>. GitHub and Cloudflare may process data outside the EEA, including in the United States. Their published safeguards include the EU-U.S. Data Privacy Framework for covered transfers and standard contractual clauses where applicable. Information about the applicable safeguards can be requested through our contact point. Our source code contains no custom logging of visitor IP addresses or request headers.
+            </p>
+            <p id="sec4-p3" class="section-text">
+              <strong>Project links:</strong> Links to repositories and live demos are ordinary links; project pages are loaded after you click. Projects may use separate domains and providers and have their own terms and privacy notices. Responsibility depends on who actually operates each project and determines its processing, rather than its domain name or inclusion in this overview. These notices describe this hub and its repository-data endpoint; consult the relevant project's notice before using it.
             </p>
           </section>
 
           <!-- Section 5: Rights & Contact -->
           <section class="legal-section">
             <span class="section-tag">05 // compliance</span>
-            <h2 id="sec5-title" class="section-title">Your Rights (GDPR / AVG / DSGVO) &amp; Contact</h2>
+            <h2 id="sec5-title" class="section-title">
+              Responsibility, Contact and Your Privacy Rights
+            </h2>
             <p id="sec5-p1" class="section-text">
-              <strong>Data Processing Distinction:</strong> We, the independent developers behind RatelSlop, do not collect, store, or process any personal data, user accounts, mailing lists, or profiling databases. Technical connection data (such as IP addresses and server access logs) is processed exclusively at the infrastructure level by our hosting provider GitHub Pages for secure web delivery (see Section 03). We do not possess, store, or inspect identifying user records.
+              <strong>Responsibility:</strong> The individual maintainers who determine how this hub and its repository-data endpoint operate are responsible for the processing they arrange. RatelSlop is their informal creative name, not a separate legal entity. The shared contact point for privacy requests and operator enquiries is <a href="mailto:support@ratelslop.studio" style="color: var(--accent);">support@ratelslop.studio</a>. Using hosting and email providers does not remove the maintainers' responsibilities for processing on their behalf.
             </p>
             <p id="sec5-p2" class="section-text">
-              <strong>Direct Contact:</strong> For privacy questions, data subject inquiries, or responsible disclosure, you can reach the maintainers directly via email at <a href="mailto:support@ratelslop.studio" style="color: var(--accent);">support@ratelslop.studio</a> or via our GitHub organization (<a href="https://github.com/RatelSlop" target="_blank" rel="noopener noreferrer" style="color: var(--accent);">github.com/RatelSlop</a>).
+              <strong>Contact by email:</strong> Messages to <a href="mailto:support@ratelslop.studio" style="color: var(--accent);">support@ratelslop.studio</a> are forwarded by Cloudflare Email Routing (Cloudflare, Inc., United States) to a maintainer's Gmail mailbox (Google, including Google LLC in the United States and its relevant European affiliates). This processes the sender address, message contents, attachments and delivery metadata. The maintainer uses these data to answer enquiries and handle support, security reports or legal requests, on the basis of legitimate interest (Article 6(1)(f) GDPR) or, where a legal duty applies, Article 6(1)(c) GDPR. Correspondence is retained while needed to resolve the request and necessary follow-up, comply with legal obligations, or establish, exercise or defend legal claims. Provider retention and processing, including outside the EEA, are described in the <a href="https://www.cloudflare.com/privacypolicy/" target="_blank" rel="noopener noreferrer" style="color: var(--accent);">Cloudflare Privacy Policy</a>, <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer" style="color: var(--accent);">Google Privacy Policy</a> and <a href="https://policies.google.com/privacy/frameworks" target="_blank" rel="noopener noreferrer" style="color: var(--accent);">Google transfer safeguards</a>. Sending an email is optional; without relevant contact information we may be unable to answer the request.
             </p>
             <p id="sec5-p3" class="section-text">
-              <strong>Right to Lodge a Complaint (Art. 77 GDPR):</strong> If you believe that our handling of personal data violates the General Data Protection Regulation (GDPR / DSGVO), you have the right to lodge a complaint with a competent supervisory authority. In the Netherlands, this is the <strong>Autoriteit Persoonsgegevens (AP)</strong> (autoriteitpersoonsgegevens.nl); in Germany, this is the competent <strong>Landesdatenschutzbehörde</strong> of the respective federal state.
+              <strong>Your rights:</strong> Where applicable, you may request access, correction, erasure, restriction of processing or data portability. You may object to processing based on legitimate interest. Any consent used for a particular processing activity can be withdrawn for the future. Send a request to <a href="mailto:support@ratelslop.studio" style="color: var(--accent);">support@ratelslop.studio</a>; we respond within the GDPR time limits, normally one month, and may ask for proportionate information to verify your identity. Rights depend on the circumstances and statutory exceptions. We do not use visitor data for automated decisions with legal or similarly significant effects.
+            </p>
+            <p id="sec5-p4" class="section-text">
+              <strong>Complaints:</strong> You may lodge a complaint with a competent supervisory authority, including the Autoriteit Persoonsgegevens in the Netherlands or the relevant Landesdatenschutzbehörde in Germany, particularly in the country of your habitual residence, work or the alleged infringement (Article 77 GDPR).
             </p>
           </section>
 
@@ -699,56 +723,69 @@
         pageTitle: 'Privacy Policy',
         pageDesc: 'No analytics. No tracking cookies. Minimal by design.',
         sec1Title: 'Privacy-First Architecture',
-        sec1P1: "ratelslop.studio is a non-commercial project hub maintained as an informal personal hobby portfolio by independent individual developers under the collective moniker 'RatelSlop'. 'RatelSlop' is not a company, commercial studio, or corporate entity; the word 'Studios' appearing in our GitHub organization display name ('RatelSlop Studios') is purely an informal, atmospheric handle. We believe web browsing should be private and clean: zero advertising networks, zero tracking cookies, and zero behavioral telemetry.",
+        sec1P1: "ratelslop.studio is a non-commercial hobby project hub maintained by independent individual developers under the informal creative name 'RatelSlop'. RatelSlop is not a company or legal entity; 'RatelSlop Studios' is the informal display name of our GitHub organization. We do not install advertising networks, analytics scripts, tracking cookies, or behavioural tracking on this hub. Technical connection data and messages sent to us are processed as described below.",
         sec2Title: 'Functional Local Storage',
-        sec2P1: "We do not store cookies on your device. We use your browser's standard localStorage strictly for essential functional preferences requested by you:",
-        sec2P2: "• theme: Remembers your dark mode / light mode selection.<br>• lang: Remembers your preferred display language (EN / NL).<br>• ratelslop_repos_cache_v6 and ratelslop_repos_cache_time_v6: Store public repository information, including programming languages and configured website URLs, and its timestamp locally. Cached data is reused for up to 3 minutes to avoid unnecessary network requests; the stored values remain until replaced or cleared from your browser.",
-        sec2P3: 'This data stays exclusively on your own device and is never transmitted to us or third parties. Under the EU ePrivacy Directive, the Dutch Telecommunications Act (art. 11.7a), and the German TDDDG (§ 25 Abs. 2 Nr. 2), strictly functional storage requested by the user does not require a cookie banner.',
+        sec2P1: "The site's code does not set cookies. Browser localStorage is used to remember display choices after you select them. The controls tell you that your choices are saved on this device.",
+        sec2P2: "• <code>theme</code>: Your selected light or dark theme.<br>• <code>lang</code>: Your selected language (EN or NL).<br>These values are not sent to our APIs and remain until you change them or clear this site's browser data. If storage is blocked, the controls still work for the current page. Repository information is not read from or written to localStorage or sessionStorage. Older site versions may have left unused <code>ratelslop_repos_cache_*</code> and <code>ratelslop_repos_cache_time_*</code> entries, which you can remove by clearing site data. Your browser may cache files and API responses through its standard HTTP cache.",
+        sec2P3: "Remembering your explicitly selected display preferences supports the functionality you request. We rely on the functional-storage exceptions in Article 11.7a of the Dutch Telecommunications Act and § 25(2)(2) TDDDG, read with the EU ePrivacy Directive. This does not provide an exemption for unrelated tracking or additional storage purposes.",
         sec3Title: 'Hosting & Server Logs',
-        sec3P1: 'This website is statically hosted via GitHub Pages (operated by GitHub Inc. / Microsoft Corporation, certified under the EU-U.S. Data Privacy Framework). When you visit any page, the hosting infrastructure automatically processes technical connection data (such as your IP address, browser user-agent, and request timestamps) in transient server access logs to deliver web pages securely and defend against denial-of-service (DDoS) attacks.',
-        sec3P2: '<strong>Legal Basis & Retention Period:</strong> The legal basis for this technical logging by our hosting provider is <strong>legitimate interest</strong> (Article 6(1)(f) GDPR / DSGVO) to ensure network stability, system resilience, security diagnostics, and DDoS mitigation. Server access logs are retained by GitHub in accordance with their own infrastructure and data retention policies, over which we as developers have no control or access; please refer to the <a href="https://docs.github.com/en/site-policy/privacy-policies/github-privacy-statement" target="_blank" rel="noopener noreferrer" style="color: var(--accent);">GitHub Privacy Statement</a> for current details.',
+        sec3P1: "The hub's HTML, images and fonts are served through GitHub Pages (GitHub, Inc., United States, a Microsoft affiliate). GitHub processes technical connection data such as your IP address, browser headers, requested resource and request time to provide and secure the hosting service. We do not operate a separate visitor-account, marketing or profiling database on this hub.",
+        sec3P2: "<strong>Purpose, legal basis and retention:</strong> We use this hosting on the basis of our legitimate interest in making a secure, reliable public project overview available (Article 6(1)(f) GDPR). GitHub also processes data for its own service and security purposes under its own policy. Its log retention depends on the processing purpose and applicable legal obligations; the repository does not establish a fixed retention period for GitHub server logs. See the <a href=\"https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement\" target=\"_blank\" rel=\"noopener noreferrer\" style=\"color: var(--accent);\">GitHub Privacy Statement</a> for provider processing, retention and international-transfer information.",
         sec4Title: 'Cloudflare Edge Proxy, GitHub API & Project Hosting',
-        sec4P1: '<strong>Cloudflare Edge Proxy &amp; GitHub API:</strong> To ensure high-speed loading and protect visitors from client-side GitHub API rate limits, this website queries our edge caching proxy worker (<code>api.ratelslop.studio/repos</code>, operated via Cloudflare Workers / Cloudflare Inc., USA, certified under the EU-U.S. Data Privacy Framework). When loading repository data, your technical connection metadata (such as IP address and request headers) is processed by Cloudflare at the network edge on the legal basis of our legitimate interest (Article 6(1)(f) GDPR / DSGVO) in reliable, performant content delivery and rate-limit mitigation. The edge worker aggregates public repository metadata and programming languages server-to-server from GitHub Inc. (USA) and caches the response for 3 minutes, so your IP address is not repeatedly transmitted to GitHub. If the edge proxy is temporarily unreachable, the browser may fall back to direct GitHub API requests.<br><br><strong>Showcased Projects &amp; Independent External Hosting:</strong> While public repositories belonging to our GitHub organization are dynamically displayed on this central hub, the tools, applications, and live demos themselves are not necessarily hosted on <code>ratelslop.studio</code>. Individual contributors within the collective independently maintain and host their own projects on various infrastructure providers (such as Cloudflare Pages/Workers under external domains including, but not limited to, <code>schoolnaam.nl</code>, <code>ratelslop.studio</code>, and <code>hooijmaijers.me</code>). Clicking on project demo links navigates you away from this hub to external infrastructure. We do not manage, control, or assume responsibility for data processing on such external services; please consult the privacy policy and hosting documentation of the respective external project or domain.',
-        sec5Title: 'Your Rights (GDPR / AVG / DSGVO) & Contact',
-        sec5P1: '<strong>Data Processing Distinction:</strong> We, the independent developers behind RatelSlop, do not collect, store, or process any personal data, user accounts, mailing lists, or profiling databases. Technical connection data (such as IP addresses and server access logs) is processed exclusively at the infrastructure level by our hosting provider GitHub Pages for secure web delivery (see Section 03). We do not possess, store, or inspect identifying user records.',
-        sec5P2: '<strong>Direct Contact:</strong> For privacy questions, data subject inquiries, or responsible disclosure, you can reach the maintainers directly via email at <a href="mailto:support@ratelslop.studio" style="color: var(--accent);">support@ratelslop.studio</a> or via our GitHub organization (<a href="https://github.com/RatelSlop" target="_blank" rel="noopener noreferrer" style="color: var(--accent);">github.com/RatelSlop</a>).',
-        sec5P3: '<strong>Right to Lodge a Complaint (Art. 77 GDPR):</strong> If you believe that our handling of personal data violates the General Data Protection Regulation (GDPR / DSGVO), you have the right to lodge a complaint with a competent supervisory authority. In the Netherlands, this is the <strong>Autoriteit Persoonsgegevens (AP)</strong> (autoriteitpersoonsgegevens.nl); in Germany, this is the competent <strong>Landesdatenschutzbehörde</strong> of the respective federal state.',
+        sec4P1: "<strong>Repository requests:</strong> The homepage requests public project metadata from <code>https://api.ratelslop.studio/repos</code>, hosted by Cloudflare Workers (Cloudflare, Inc., United States). Cloudflare receives your IP address, request time, requested URL and technical headers to deliver and secure the response. Our legal basis is Article 6(1)(f) GDPR: a reliable, current project overview with fewer upstream requests. The Worker queries public GitHub repositories and languages and uses a shared edge cache with a three-minute freshness period. Cloudflare may add visitor-IP headers to server-to-server subrequests; the proxy is not a guarantee of anonymity towards GitHub. If the proxy request fails or returns invalid data, the browser requests repository and language data directly from <code>api.github.com</code> (GitHub, Inc., United States), which then receives your IP address and technical browser headers. Those fallback requests serve the same purpose and legal basis. The browser API requests omit credentials and the Referer header. The Worker caches project metadata, not visitor identifiers.",
+        sec4P2: "<strong>Logs and international transfers:</strong> The three-minute response cache is separate from provider logs. Cloudflare processes network and security data under the <a href=\"https://www.cloudflare.com/privacypolicy/\" target=\"_blank\" rel=\"noopener noreferrer\" style=\"color: var(--accent);\">Cloudflare Privacy Policy</a>. Depending on deployed account settings, maintainers may also access diagnostic request information through Workers Logs or live diagnostics. Workers Logs retention depends on the plan and configuration; see the <a href=\"https://developers.cloudflare.com/workers/observability/logs/workers-logs/\" target=\"_blank\" rel=\"noopener noreferrer\" style=\"color: var(--accent);\">Workers Logs documentation</a>. GitHub and Cloudflare may process data outside the EEA, including in the United States. Their published safeguards include the EU-U.S. Data Privacy Framework for covered transfers and standard contractual clauses where applicable. Information about the applicable safeguards can be requested through our contact point. Our source code contains no custom logging of visitor IP addresses or request headers.",
+        sec4P3: "<strong>Project links:</strong> Links to repositories and live demos are ordinary links; project pages are loaded after you click. Projects may use separate domains and providers and have their own terms and privacy notices. Responsibility depends on who actually operates each project and determines its processing, rather than its domain name or inclusion in this overview. These notices describe this hub and its repository-data endpoint; consult the relevant project's notice before using it.",
+        sec5Title: "Responsibility, Contact and Your Privacy Rights",
+        sec5P1: "<strong>Responsibility:</strong> The individual maintainers who determine how this hub and its repository-data endpoint operate are responsible for the processing they arrange. RatelSlop is their informal creative name, not a separate legal entity. The shared contact point for privacy requests and operator enquiries is <a href=\"mailto:support@ratelslop.studio\" style=\"color: var(--accent);\">support@ratelslop.studio</a>. Using hosting and email providers does not remove the maintainers' responsibilities for processing on their behalf.",
+        sec5P2: "<strong>Contact by email:</strong> Messages to <a href=\"mailto:support@ratelslop.studio\" style=\"color: var(--accent);\">support@ratelslop.studio</a> are forwarded by Cloudflare Email Routing (Cloudflare, Inc., United States) to a maintainer's Gmail mailbox (Google, including Google LLC in the United States and its relevant European affiliates). This processes the sender address, message contents, attachments and delivery metadata. The maintainer uses these data to answer enquiries and handle support, security reports or legal requests, on the basis of legitimate interest (Article 6(1)(f) GDPR) or, where a legal duty applies, Article 6(1)(c) GDPR. Correspondence is retained while needed to resolve the request and necessary follow-up, comply with legal obligations, or establish, exercise or defend legal claims. Provider retention and processing, including outside the EEA, are described in the <a href=\"https://www.cloudflare.com/privacypolicy/\" target=\"_blank\" rel=\"noopener noreferrer\" style=\"color: var(--accent);\">Cloudflare Privacy Policy</a>, <a href=\"https://policies.google.com/privacy\" target=\"_blank\" rel=\"noopener noreferrer\" style=\"color: var(--accent);\">Google Privacy Policy</a> and <a href=\"https://policies.google.com/privacy/frameworks\" target=\"_blank\" rel=\"noopener noreferrer\" style=\"color: var(--accent);\">Google transfer safeguards</a>. Sending an email is optional; without relevant contact information we may be unable to answer the request.",
+        sec5P3: "<strong>Your rights:</strong> Where applicable, you may request access, correction, erasure, restriction of processing or data portability. You may object to processing based on legitimate interest. Any consent used for a particular processing activity can be withdrawn for the future. Send a request to <a href=\"mailto:support@ratelslop.studio\" style=\"color: var(--accent);\">support@ratelslop.studio</a>; we respond within the GDPR time limits, normally one month, and may ask for proportionate information to verify your identity. Rights depend on the circumstances and statutory exceptions. We do not use visitor data for automated decisions with legal or similarly significant effects.",
+        sec5P4: "<strong>Complaints:</strong> You may lodge a complaint with a competent supervisory authority, including the Autoriteit Persoonsgegevens in the Netherlands or the relevant Landesdatenschutzbehörde in Germany, particularly in the country of your habitual residence, work or the alleged infringement (Article 77 GDPR).",
+        pageDate: 'Last updated: 30 September 2026',
+        preferenceNote: 'Display choices are saved on this device.',
         themeLight: 'Light',
-        themeDark: 'Dark'
+        themeDark: 'Dark',
       },
       nl: {
         pageTitle: 'Privacyverklaring',
         pageDesc: 'Geen analytics. Geen tracking cookies. Puur en minimaal.',
         sec1Title: 'Privacy-First Filosofie',
-        sec1P1: "ratelslop.studio is een niet-commerciële projecthub beheerd als een informeel particulier hobbyproject door onafhankelijke individuele ontwikkelaars onder de verzamelnaam 'RatelSlop'. 'RatelSlop' is géén bedrijf, commerciële studio of rechtspersoon; de toevoeging 'Studios' in onze GitHub-weergavenaam ('RatelSlop Studios') is louter een informele, creatieve geuzennaam. Wij vinden dat het bezoeken van een website schoon en privé moet zijn: nul advertentienetwerken, nul trackingcookies en nul gedragstelemetrie.",
+        sec1P1: "ratelslop.studio is een niet-commerciële hobbyprojecthub van onafhankelijke individuele ontwikkelaars onder de informele creatieve naam 'RatelSlop'. RatelSlop is geen bedrijf of rechtspersoon; 'RatelSlop Studios' is de informele weergavenaam van onze GitHub-organisatie. Wij plaatsen op deze hub geen advertentienetwerken, analyticsscripts, trackingcookies of gedragstracking. Technische verbindingsgegevens en berichten die je ons stuurt worden verwerkt zoals hieronder beschreven.",
         sec2Title: 'Functionele Lokale Opslag (Geen Cookies)',
-        sec2P1: 'Wij plaatsen geen cookies op je apparaat. We maken uitsluitend gebruik van de standaard localStorage van je browser voor strikt functionele instellingen die je zelf kiest:',
-        sec2P2: '• theme: Onthoudt je dark/light mode voorkeur.<br>• lang: Onthoudt je gewenste weergavetaal (EN / NL).<br>• ratelslop_repos_cache_v6 en ratelslop_repos_cache_time_v6: Bewaren openbare repository-informatie, inclusief programmeertalen en geconfigureerde website-URL\'s, en de bijbehorende tijdstempel lokaal. De cache wordt maximaal 3 minuten hergebruikt om onnodige netwerkverzoeken te voorkomen; de opgeslagen waarden blijven staan tot ze worden vervangen of je ze uit je browser wist.',
-        sec2P3: 'Deze gegevens blijven 100% lokaal op jouw apparaat en worden nooit verzonden naar ons of derden. Onder de Europese ePrivacy-richtlijn, de Nederlandse Telecommunicatiewet (art. 11.7a) en de Duitse TDDDG (§ 25 lid 2 nr. 2) vereist strikt functionele opslag géén cookiebanner.',
+        sec2P1: "De code van deze site plaatst geen cookies. Browser-localStorage onthoudt weergavekeuzes nadat je deze selecteert. Bij de bediening staat dat je keuzes op dit apparaat worden bewaard.",
+        sec2P2: "• <code>theme</code>: Je gekozen lichte of donkere thema.<br>• <code>lang</code>: Je gekozen taal (EN of NL).<br>Deze waarden worden niet naar onze API's verstuurd en blijven staan totdat je ze wijzigt of de browsergegevens van deze site wist. Als opslag geblokkeerd is, blijft de bediening werken voor de huidige pagina. Repository-informatie wordt niet uit localStorage of sessionStorage gelezen of daarin opgeslagen. Oudere siteversies kunnen ongebruikte waarden met de namen <code>ratelslop_repos_cache_*</code> en <code>ratelslop_repos_cache_time_*</code> hebben achtergelaten; je kunt ze verwijderen door de sitegegevens te wissen. Je browser kan bestanden en API-responses via zijn gebruikelijke HTTP-cache bewaren.",
+        sec2P3: "Het onthouden van je uitdrukkelijk gekozen weergavevoorkeuren ondersteunt de functionaliteit die je vraagt. Wij baseren ons op de uitzonderingen voor functionele opslag in artikel 11.7a Telecommunicatiewet en § 25 lid 2 nr. 2 TDDDG, gelezen met de Europese ePrivacy-richtlijn. Dit geeft geen vrijstelling voor andere tracking of aanvullende opslagdoeleinden.",
         sec3Title: 'Hosting & Serverlogs',
-        sec3P1: 'Deze website wordt statisch gehost via GitHub Pages (GitHub Inc. / Microsoft Corporation, gecertificeerd onder het EU-U.S. Data Privacy Framework). Bij ieder websitebezoek verwerkt de hostinginfrastructuur van GitHub noodzakelijke verbindingsgegevens (zoals je IP-adres, browser user-agent en tijdstempels) in tijdelijke serverlogs om webpagina’s veilig af te leveren en te beveiligen tegen DDoS-aanvallen.',
-        sec3P2: '<strong>Rechtsgrond & Bewaartermijn:</strong> De rechtsgrond voor deze technische logging door de hostingprovider is het <strong>gerechtvaardigd belang</strong> (Art. 6 lid 1 sub f AVG/DSGVO) om de stabiliteit, integriteit en beveiliging van de website te waarborgen en DDoS-aanvallen af te weren. Serverlogs worden door GitHub bewaard conform hun eigen infrastructuur- en retentiebeleid, waarover wij als makers geen controle of inzage hebben; zie het <a href="https://docs.github.com/en/site-policy/privacy-policies/github-privacy-statement" target="_blank" rel="noopener noreferrer" style="color: var(--accent);">Privacybeleid van GitHub</a> voor actuele details.',
+        sec3P1: "De HTML, afbeeldingen en lettertypen van de hub worden geleverd via GitHub Pages (GitHub, Inc., Verenigde Staten, een aan Microsoft verbonden onderneming). GitHub verwerkt technische verbindingsgegevens zoals je IP-adres, browserheaders, opgevraagde bestand en tijdstip van het verzoek om de hosting te leveren en beveiligen. Wij beheren op deze hub geen afzonderlijke database voor bezoekersaccounts, marketing of profilering.",
+        sec3P2: "<strong>Doel, rechtsgrond en bewaring:</strong> Wij gebruiken deze hosting op basis van ons gerechtvaardigd belang bij een veilig en betrouwbaar openbaar projectenoverzicht (artikel 6 lid 1 sub f AVG). GitHub verwerkt daarnaast gegevens voor eigen dienstverlenings- en beveiligingsdoeleinden volgens zijn eigen beleid. Bewaring van logs hangt af van het verwerkingsdoel en toepasselijke wettelijke verplichtingen; de repository legt geen vaste bewaartermijn voor GitHub-serverlogs vast. Zie het <a href=\"https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement\" target=\"_blank\" rel=\"noopener noreferrer\" style=\"color: var(--accent);\">privacybeleid van GitHub</a> voor de verwerking, bewaring en internationale doorgifte door de provider.",
         sec4Title: 'Cloudflare Edge Proxy, GitHub API & Projecthosting',
-        sec4P1: '<strong>Cloudflare Edge Proxy &amp; GitHub API:</strong> Om snelle laadtijden te garanderen en te voorkomen dat bezoekers tegen de IP-aanroeplimieten van GitHub aanlopen, vraagt deze website repository-gegevens op via onze edge caching proxy worker (<code>api.ratelslop.studio/repos</code>, gehost via Cloudflare Workers / Cloudflare Inc., VS, gecertificeerd onder het EU-U.S. Data Privacy Framework). Bij het inladen van projectgegevens worden technische verbindingsgegevens (zoals IP-adres en headers) verwerkt op het Cloudflare Edge-netwerk op basis van ons gerechtvaardigd belang (art. 6 lid 1 sub f AVG/DSGVO) bij betrouwbare, performante caching en DDoS-bescherming. De worker haalt openbare repository-informatie en programmeertalen server-to-server op van GitHub Inc. (VS) en bewaart dit 3 minuten in de edge-cache, zodat jouw IP-adres niet herhaaldelijk naar GitHub wordt verstuurd. Mocht de edge proxy tijdelijk onbereikbaar zijn, dan kan de browser terugvallen op directe GitHub API-aanroepen.<br><br><strong>Getoonde Projecten &amp; Onafhankelijke Externe Hosting:</strong> Hoewel openbare repositories van onze GitHub-organisatie automatisch op deze centrale hub worden getoond, worden de tools, webapps en live demo\'s zelf niet noodzakelijkerwijs gehost op <code>ratelslop.studio</code>. Individuele bijdragers binnen het collectief beheren en hosten hun eigen projecten zelfstandig op verschillende platforms en infrastructuren (zoals Cloudflare Pages/Workers onder externe domeinen waaronder, maar niet uitsluitend, <code>schoolnaam.nl</code>, <code>ratelslop.studio</code> en <code>hooijmaijers.me</code>). Zodra je via een projectlink doorklikt naar een externe demo, verlaat je deze centrale hub. Wij hebben geen zeggenschap over en dragen geen verantwoordelijkheid voor de gegevensverwerking door dergelijke externe diensten; raadpleeg voor die projecten altijd het privacybeleid en de infrastructuurvoorwaarden van het betreffende project of domein.',
-        sec5Title: 'Jouw Rechten (AVG / GDPR / DSGVO) & Contact',
-        sec5P1: '<strong>Onderscheid gegevensverwerking:</strong> Wij, de onafhankelijke ontwikkelaars achter RatelSlop, verzamelen, bewaren of verwerken zelf geen enkel persoonsgegeven, gebruikersaccount, nieuwsbrieflijst of gebruikersdatabase. Technische verbindingsgegevens (zoals IP-adressen en serverlogs) worden uitsluitend op infrastructuurniveau verwerkt door onze hostingprovider GitHub Pages ten behoeve van de veilige serverwerking (zie Sectie 03). Wij hebben geen toegang tot identificeerbare gegevens van bezoekers.',
-        sec5P2: '<strong>Direct Contact:</strong> Voor privacyvragen, AVG-verzoeken of responsible disclosure meldingen kun je ons rechtstreeks bereiken via e-mail op <a href="mailto:support@ratelslop.studio" style="color: var(--accent);">support@ratelslop.studio</a> of via onze GitHub-organisatie (<a href="https://github.com/RatelSlop" target="_blank" rel="noopener noreferrer" style="color: var(--accent);">github.com/RatelSlop</a>).',
-        sec5P3: '<strong>Klachtrecht bij de toezichthouder (Art. 77 AVG/DSGVO):</strong> Indien je van mening bent dat de gegevensverwerking inbreuk maakt op de Algemene Verordening Gegevensbescherming (AVG / GDPR / DSGVO), heb je het recht om een klacht in te dienen bij een bevoegde toezichthoudende autoriteit. In Nederland is dit de <strong>Autoriteit Persoonsgegevens (AP)</strong> (autoriteitpersoonsgegevens.nl); in Duitsland is dit de bevoegde <strong>Landesdatenschutzbehörde</strong> van de betreffende deelstaat.',
+        sec4P1: "<strong>Repository-verzoeken:</strong> De homepage vraagt openbare projectinformatie op via <code>https://api.ratelslop.studio/repos</code>, gehost door Cloudflare Workers (Cloudflare, Inc., Verenigde Staten). Cloudflare ontvangt je IP-adres, tijdstip, opgevraagde URL en technische headers om de response te leveren en beveiligen. Onze rechtsgrond is artikel 6 lid 1 sub f AVG: een betrouwbaar, actueel projectenoverzicht met minder verzoeken aan de bron. De Worker vraagt openbare GitHub-repositories en programmeertalen op en gebruikt een gedeelde edge-cache met een versheidsperiode van drie minuten. Cloudflare kan bij server-to-server-verzoeken headers met het bezoekers-IP toevoegen; de proxy garandeert geen anonimiteit tegenover GitHub. Als het proxyverzoek mislukt of ongeldige gegevens oplevert, vraagt de browser repository- en taalgegevens rechtstreeks op bij <code>api.github.com</code> (GitHub, Inc., Verenigde Staten), dat dan je IP-adres en technische browserheaders ontvangt. Deze terugvalverzoeken dienen hetzelfde doel en dezelfde rechtsgrond. De API-verzoeken vanuit de browser laten credentials en de Referer-header weg. De Worker bewaart projectinformatie in de cache, geen bezoekersidentificatoren.",
+        sec4P2: "<strong>Logs en internationale doorgifte:</strong> De responsecache van drie minuten staat los van providerlogs. Cloudflare verwerkt netwerk- en beveiligingsgegevens volgens het <a href=\"https://www.cloudflare.com/privacypolicy/\" target=\"_blank\" rel=\"noopener noreferrer\" style=\"color: var(--accent);\">privacybeleid van Cloudflare</a>. Afhankelijk van de toegepaste accountinstellingen kunnen beheerders ook diagnostische verzoekgegevens inzien via Workers Logs of live diagnostiek. De bewaring van Workers Logs hangt af van het abonnement en de configuratie; zie de <a href=\"https://developers.cloudflare.com/workers/observability/logs/workers-logs/\" target=\"_blank\" rel=\"noopener noreferrer\" style=\"color: var(--accent);\">documentatie over Workers Logs</a>. GitHub en Cloudflare kunnen gegevens buiten de EER verwerken, waaronder in de Verenigde Staten. Hun gepubliceerde waarborgen omvatten het EU-U.S. Data Privacy Framework voor doorgiften die daaronder vallen en, waar van toepassing, standaardcontractbepalingen. Informatie over de toepasselijke waarborgen kun je via ons contactpunt opvragen. Onze broncode bevat geen eigen logging van bezoekers-IP-adressen of verzoekheaders.",
+        sec4P3: "<strong>Projectlinks:</strong> Links naar repositories en live demo's zijn gewone links; projectpagina's worden geladen nadat je klikt. Projecten kunnen afzonderlijke domeinen en providers gebruiken en eigen voorwaarden en privacyverklaringen hebben. Verantwoordelijkheid hangt af van wie het project daadwerkelijk beheert en de verwerking bepaalt, niet van de domeinnaam of vermelding in dit overzicht. Deze verklaringen beschrijven deze hub en het endpoint voor repository-gegevens; raadpleeg de verklaring van het betreffende project voordat je het gebruikt.",
+        sec5Title: "Verantwoordelijkheid, Contact en Jouw Privacyrechten",
+        sec5P1: "<strong>Verantwoordelijkheid:</strong> De individuele beheerders die bepalen hoe deze hub en het endpoint voor repository-gegevens werken, zijn verantwoordelijk voor de verwerking die zij organiseren. RatelSlop is hun informele creatieve naam, geen afzonderlijke rechtspersoon. Het gezamenlijke contactpunt voor privacyverzoeken en vragen over de beheerders is <a href=\"mailto:support@ratelslop.studio\" style=\"color: var(--accent);\">support@ratelslop.studio</a>. Het gebruik van hosting- en e-mailproviders neemt de verantwoordelijkheid van de beheerders voor verwerking namens hen niet weg.",
+        sec5P2: "<strong>Contact via e-mail:</strong> Berichten aan <a href=\"mailto:support@ratelslop.studio\" style=\"color: var(--accent);\">support@ratelslop.studio</a> worden door Cloudflare Email Routing (Cloudflare, Inc., Verenigde Staten) doorgestuurd naar de Gmail-mailbox van een beheerder (Google, waaronder Google LLC in de Verenigde Staten en de relevante Europese groepsmaatschappijen). Daarbij worden het afzenderadres, berichtinhoud, bijlagen en aflevermetadata verwerkt. De beheerder gebruikt deze gegevens om vragen te beantwoorden en support, beveiligingsmeldingen of juridische verzoeken af te handelen, op basis van gerechtvaardigd belang (artikel 6 lid 1 sub f AVG) of, als een wettelijke plicht geldt, artikel 6 lid 1 sub c AVG. Correspondentie wordt bewaard zolang die nodig is om het verzoek en noodzakelijk vervolg af te handelen, wettelijke verplichtingen na te komen of rechtsvorderingen in te stellen, uit te oefenen of te onderbouwen. Bewaring en verwerking door providers, ook buiten de EER, staan beschreven in het <a href=\"https://www.cloudflare.com/privacypolicy/\" target=\"_blank\" rel=\"noopener noreferrer\" style=\"color: var(--accent);\">privacybeleid van Cloudflare</a>, <a href=\"https://policies.google.com/privacy\" target=\"_blank\" rel=\"noopener noreferrer\" style=\"color: var(--accent);\">privacybeleid van Google</a> en de <a href=\"https://policies.google.com/privacy/frameworks?hl=nl\" target=\"_blank\" rel=\"noopener noreferrer\" style=\"color: var(--accent);\">doorgiftewaarborgen van Google</a>. E-mail sturen is vrijwillig; zonder relevante contactgegevens kunnen wij het verzoek mogelijk niet beantwoorden.",
+        sec5P3: "<strong>Jouw rechten:</strong> Waar van toepassing kun je inzage, correctie, verwijdering, beperking van verwerking of gegevensoverdraagbaarheid vragen. Je kunt bezwaar maken tegen verwerking op basis van gerechtvaardigd belang. Eventuele toestemming voor een specifieke verwerking kun je voor de toekomst intrekken. Stuur je verzoek naar <a href=\"mailto:support@ratelslop.studio\" style=\"color: var(--accent);\">support@ratelslop.studio</a>; wij reageren binnen de AVG-termijnen, doorgaans één maand, en kunnen evenredige informatie vragen om je identiteit te controleren. Rechten hangen af van de omstandigheden en wettelijke uitzonderingen. Wij gebruiken bezoekersgegevens niet voor geautomatiseerde besluiten met rechtsgevolgen of vergelijkbare aanzienlijke gevolgen.",
+        sec5P4: "<strong>Klachten:</strong> Je kunt een klacht indienen bij een bevoegde toezichthouder, waaronder de Autoriteit Persoonsgegevens in Nederland of de betreffende Landesdatenschutzbehörde in Duitsland, met name in het land van je gewone verblijfplaats, werk of de vermeende inbreuk (artikel 77 AVG).",
+        pageDate: 'Laatst bijgewerkt: 30 september 2026',
+        preferenceNote: 'Weergavekeuzes worden op dit apparaat bewaard.',
         themeLight: 'Licht',
-        themeDark: 'Donker'
+        themeDark: 'Donker',
       }
     };
 
-    let currentLang = localStorage.getItem('lang') || 'en';
+    let currentLang = readPreference('lang', ['en', 'nl']) || 'en';
 
-    function applyLanguage(lang) {
+    function applyLanguage(lang, remember = false) {
+      lang = Object.hasOwn(TRANSLATIONS, lang) ? lang : 'en';
       currentLang = lang;
-      localStorage.setItem('lang', lang);
+      if (remember) savePreference('lang', lang);
       document.documentElement.lang = lang;
 
       const t = TRANSLATIONS[lang] || TRANSLATIONS.en;
+      document.getElementById('preference-note').textContent = t.preferenceNote;
       document.getElementById('page-title').textContent = t.pageTitle;
       document.getElementById('page-desc').textContent = t.pageDesc;
+      document.getElementById('page-date').textContent = t.pageDate;
       document.getElementById('sec1-title').textContent = t.sec1Title;
       document.getElementById('sec1-p1').innerHTML = t.sec1P1;
       document.getElementById('sec2-title').textContent = t.sec2Title;
@@ -760,11 +797,14 @@
       document.getElementById('sec3-p2').innerHTML = t.sec3P2;
       document.getElementById('sec4-title').textContent = t.sec4Title;
       document.getElementById('sec4-p1').innerHTML = t.sec4P1;
+      document.getElementById('sec4-p2').innerHTML = t.sec4P2;
+      document.getElementById('sec4-p3').innerHTML = t.sec4P3;
       document.getElementById('sec5-title').textContent = t.sec5Title;
       document.getElementById('sec5-p1').innerHTML = t.sec5P1;
       document.getElementById('sec5-p2').innerHTML = t.sec5P2;
       const sec5P3 = document.getElementById('sec5-p3');
       if (sec5P3) sec5P3.innerHTML = t.sec5P3;
+      document.getElementById('sec5-p4').innerHTML = t.sec5P4;
 
       // Update theme toggle label
       const activeTheme = document.documentElement.getAttribute('data-theme') || 'dark';
@@ -779,7 +819,7 @@
 
     const langSelect = document.getElementById('lang-select');
     langSelect.addEventListener('change', (e) => {
-      applyLanguage(e.target.value);
+      applyLanguage(e.target.value, true);
     });
 
     // Theme toggle
@@ -808,7 +848,7 @@
       const activeTheme = document.documentElement.getAttribute('data-theme');
       const targetTheme = activeTheme === 'light' ? 'dark' : 'light';
       document.documentElement.setAttribute('data-theme', targetTheme);
-      localStorage.setItem('theme', targetTheme);
+      savePreference('theme', targetTheme);
       updateToggleButton(targetTheme);
     });
 

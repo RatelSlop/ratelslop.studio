@@ -15,14 +15,27 @@
 
   <!-- Theme check before render -->
   <script>
-    (function() {
-      const storedTheme = localStorage.getItem('theme');
-      if (storedTheme) {
-        document.documentElement.setAttribute('data-theme', storedTheme);
-      } else {
-        const prefersLight = window.matchMedia('(prefers-color-scheme: light)').matches;
-        document.documentElement.setAttribute('data-theme', prefersLight ? 'light' : 'dark');
+    function readPreference(key, allowedValues) {
+      try {
+        const value = localStorage.getItem(key);
+        return allowedValues.includes(value) ? value : null;
+      } catch {
+        return null;
       }
+    }
+
+    function savePreference(key, value) {
+      try {
+        localStorage.setItem(key, value);
+      } catch {
+        // Display controls still work when browser storage is unavailable.
+      }
+    }
+
+    (function() {
+      const storedTheme = readPreference('theme', ['light', 'dark']);
+      const prefersLight = window.matchMedia('(prefers-color-scheme: light)').matches;
+      document.documentElement.setAttribute('data-theme', storedTheme || (prefersLight ? 'light' : 'dark'));
     })();
   </script>
 
@@ -359,23 +372,26 @@
         <img src="/logo.png" alt="RatelSlop Logo" class="brand-logo" width="59" height="68">
       </a>
 
-      <button id="theme-toggle" class="theme-toggle-btn" type="button" aria-label="Toggle theme">
-        <svg id="sun-icon" viewBox="0 0 24 24">
-          <circle cx="12" cy="12" r="5"></circle>
-          <line x1="12" y1="1" x2="12" y2="3"></line>
-          <line x1="12" y1="21" x2="12" y2="23"></line>
-          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
-          <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
-          <line x1="1" y1="12" x2="3" y2="12"></line>
-          <line x1="21" y1="12" x2="23" y2="12"></line>
-          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
-          <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
-        </svg>
-        <svg id="moon-icon" style="display:none;" viewBox="0 0 24 24">
-          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
-        </svg>
-        <span id="theme-text">Light</span>
-      </button>
+      <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 0.45rem;">
+        <button id="theme-toggle" class="theme-toggle-btn" type="button" aria-label="Toggle theme">
+          <svg id="sun-icon" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="5"></circle>
+            <line x1="12" y1="1" x2="12" y2="3"></line>
+            <line x1="12" y1="21" x2="12" y2="23"></line>
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+            <line x1="1" y1="12" x2="3" y2="12"></line>
+            <line x1="21" y1="12" x2="23" y2="12"></line>
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+          </svg>
+          <svg id="moon-icon" style="display:none;" viewBox="0 0 24 24">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+          </svg>
+          <span id="theme-text">Light</span>
+        </button>
+        <p style="font-size: 0.65rem; color: var(--text-dim); max-width: 12rem; text-align: right;">Your theme choice is saved on this device.</p>
+      </div>
     </div>
 
     <main>
@@ -427,7 +443,7 @@
       const activeTheme = document.documentElement.getAttribute('data-theme');
       const targetTheme = activeTheme === 'light' ? 'dark' : 'light';
       document.documentElement.setAttribute('data-theme', targetTheme);
-      localStorage.setItem('theme', targetTheme);
+      savePreference('theme', targetTheme);
       updateToggleButton(targetTheme);
     });
   </script>
