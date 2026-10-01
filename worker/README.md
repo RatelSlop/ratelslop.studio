@@ -3,8 +3,9 @@
 Publieke metadata-proxy voor `https://api.ratelslop.studio/repos`. De Worker vraagt
 expliciet openbare GitHub-repositories op, accepteert alleen `private: false` en
 geeft alleen de velden terug die het projectenoverzicht nodig heeft. De gedeelde
-edge-cache heeft een versheidsperiode van 180 seconden. Er is geen eigen logging
-van bezoekers-IP's of headers; Cloudflare verwerkt wel verbindingsgegevens.
+edge-cache heeft een versheidsperiode van 180 seconden. De broncode schrijft geen
+bezoekers-IP's of headers naar logs. De bestaande Cloudflare-dashboarddeployment
+gebruikt wel Workers Logs voor onderzoek naar bots, misbruik en beveiligingsincidenten.
 
 ## Deployment
 
@@ -19,8 +20,10 @@ niet ingetrokken.
 
 1. Open de bestaande `ratelslop-repos` onder **Workers & Pages**.
 2. Vervang de code via **Edit code** door [`index.js`](./index.js) en deploy.
-3. Controleer de instelling voor Workers Logs / Observability en schakel
-   persistente Workers Logs uit. Alleen code plakken past `wrangler.json` niet toe.
+3. Controleer Workers Logs / Observability. Het bestaande beveiligingsgebruik
+   staat in de privacyverklaring. Beperk logging tot dat doel en voeg geen eigen
+   logging van tokens, berichtinhoud of bezoekersheaders toe. Alleen code plakken
+   past `wrangler.json` niet toe.
 4. Controleer eventuele afzonderlijke Tail Workers, Logpush en externe exports;
    zet deze niet aan zonder noodzaak, passende instellingen en privacy-informatie.
 5. Controleer dat het bestaande domein naar deze Worker wijst.
@@ -34,10 +37,19 @@ npx wrangler login
 npx wrangler deploy
 ```
 
-[`wrangler.json`](./wrangler.json) bevat `observability.enabled: false`. Controleer
-na deployment de effectieve accountinstellingen. Uitschakelen van Workers Logs
-beëindigt niet de eigen netwerk- en beveiligingsverwerking van Cloudflare en
-verwijdert niet automatisch eerder opgeslagen logs. Zie de
+[`wrangler.json`](./wrangler.json) bevat `observability.enabled: false` en wijkt
+daarmee af van de huidige dashboarddeployment. Een deployment met dit bestand
+schakelt Workers Logs uit. Als je de bestaande beveiligingslogging ook bij een
+Wrangler-deployment wilt behouden, stel dan vóór die deployment bewust
+`observability.enabled: true` in en controleer de sampling en effectieve
+instellingen. Deze repository past de dashboardinstellingen niet zelfstandig aan.
+
+Workers Logs kunnen automatisch informatie over verzoeken en responses en
+uitvoeringsdiagnostiek bevatten, ook zonder `console.log` in de broncode. Cloudflare
+documenteert momenteel drie dagen bewaring op Workers Free en zeven dagen op
+Workers Paid. Deze termijnen gelden niet automatisch voor afzonderlijke exports
+of Cloudflare's eigen netwerk- en beveiligingsgegevens. Uitschakelen van Workers
+Logs verwijdert niet automatisch eerder opgeslagen logs. Zie de
 [Workers Logs-documentatie](https://developers.cloudflare.com/workers/observability/logs/workers-logs/).
 
 ## Optionele GitHub-authenticatie
