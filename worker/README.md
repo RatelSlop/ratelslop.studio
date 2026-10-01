@@ -70,6 +70,14 @@ tokens, beperk hun toegang en vervang ze indien nodig. De expliciete public-quer
 filter en beperkte responsevelden blijven nodig als extra beveiliging. Zie de
 [GitHub-documentatie van het endpoint](https://docs.github.com/en/rest/repos/repos#list-organization-repositories).
 
+De Worker volgt geen redirects bij GitHub-verzoeken (`redirect: 'error'`), zodat
+de Authorization-header niet naar een redirectbestemming wordt doorgestuurd.
+Een onverwachte redirect laat de repositorylijst veilig mislukken; bij een
+taalverzoek wordt de primaire programmeertaal gebruikt. Deploy deze code apart
+naar Cloudflare om deze beveiliging ook op de actieve Worker toe te passen.
+Lokale Wrangler-bestanden `.dev.vars`, `.dev.vars.*` en `.wrangler/` worden door
+`.gitignore` uitgesloten; houd tokenwaarden ook uit andere bestanden en logs.
+
 De proxy garandeert geen anonimiteit tegenover GitHub: Cloudflare kan bij
 Worker-subrequests zelf bezoekers-IP-headers toevoegen. De browser kan bij uitval
 rechtstreeks naar GitHub terugvallen. Beide routes staan in de privacyverklaring.

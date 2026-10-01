@@ -6,6 +6,9 @@ desktop.ini
 # Environment variables & secrets
 .env
 .env.*
+.dev.vars
+.dev.vars.*
+.wrangler/
 *.local
 *.pem
 *.key

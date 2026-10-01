@@ -119,10 +119,11 @@ export default {
       headers['Authorization'] = `Bearer ${env.GITHUB_TOKEN}`;
     }
 
+    // Workers can forward Authorization across redirects. Keep it at the GitHub API.
     try {
       const orgReposRes = await fetch(
         `https://api.github.com/orgs/${GITHUB_ORG}/repos?type=public&sort=pushed&direction=desc&per_page=100`,
-        { headers }
+        { headers, redirect: 'error' }
       );
 
       if (!orgReposRes.ok) {
@@ -145,7 +146,7 @@ export default {
           try {
             const langRes = await fetch(
               `https://api.github.com/repos/${GITHUB_ORG}/${encodeURIComponent(repo.name)}/languages`,
-              { headers }
+              { headers, redirect: 'error' }
             );
             if (langRes.ok) {
               const langData = await langRes.json();

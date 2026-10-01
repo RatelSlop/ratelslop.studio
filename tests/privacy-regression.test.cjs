@@ -1,5 +1,6 @@
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
+const http = require('node:http');
 const path = require('node:path');
 const vm = require('node:vm');
 const test = require('node:test');
@@ -210,6 +211,54 @@ test('Worker language request failures preserve public project responses and cac
     assert.equal(cached.headers.get('X-Edge-Cache'), 'HIT');
     assert.deepEqual(await cached.json(), body);
     assert.equal(harness.calls.length, 2);
+  }
+});
+
+test('Worker refuses repository and language redirects without sending requests to their destination', async t => {
+  let redirectedPath;
+  let redirectStatus;
+  let destinationRequests = 0;
+  const server = http.createServer((request, response) => {
+    if (request.url === '/destination') {
+      destinationRequests++;
+      response.setHeader('Content-Type', 'application/json');
+      response.end('[]');
+    } else if (request.url === redirectedPath) {
+      response.writeHead(redirectStatus, { Location: '/destination' });
+      response.end();
+    } else {
+      response.setHeader('Content-Type', 'application/json');
+      response.end(JSON.stringify([{ name: 'visible', private: false, language: 'JavaScript' }]));
+    }
+  });
+  await new Promise((resolve, reject) => {
+    server.once('error', reject);
+    server.listen(0, '127.0.0.1', resolve);
+  });
+  t.after(() => new Promise(resolve => {
+    server.close(resolve);
+    server.closeAllConnections();
+  }));
+  const origin = `http://127.0.0.1:${server.address().port}`;
+  const token = 'fake-token-canary-do-not-expose';
+  for (redirectedPath of ['/repos', '/languages']) {
+    for (redirectStatus of [301, 302, 303, 307, 308]) {
+      const harness = workerHarness((url, options) => fetch(
+        origin + (url.includes('/languages') ? '/languages' : '/repos'), options,
+      ));
+      const response = await harness.request('GET', '/repos', token);
+      const body = await response.text();
+      assert.doesNotMatch(body, new RegExp(token));
+      assert.equal(destinationRequests, 0, `${redirectedPath} ${redirectStatus} destination`);
+      if (redirectedPath === '/repos') {
+        assert.equal(response.status, 502);
+        assert.equal(harness.entries.size, 0);
+      } else {
+        assert.equal(response.status, 200);
+        assert.deepEqual(JSON.parse(body)[0].languages, ['JavaScript']);
+        assert.equal(harness.entries.size, 1);
+      }
+    }
   }
 });
 
