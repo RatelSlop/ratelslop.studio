@@ -1,0 +1,10 @@
+{
+  "name": "ratelslop-studio-checks",
+  "private": true,
+  "scripts": {
+    "test": "node --test tests/*.test.cjs"
+  },
+  "devDependencies": {
+    "miniflare": "4.20260730.0"
+  }
+}

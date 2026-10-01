@@ -11,8 +11,8 @@ gebruikt wel Workers Logs voor onderzoek naar bots, misbruik en beveiligingsinci
 
 Een GitHub-push publiceert deze Worker **niet** automatisch. Deploy de gewijzigde
 `index.js` afzonderlijk naar de bestaande Worker en behoud het domein
-`api.ratelslop.studio`. De interne cache-key `/repos-public-v1` voorkomt dat de
-nieuwe code eerder gecachte, ongefilterde responses hergebruikt. De publieke route
+`api.ratelslop.studio`. De interne cache-key `/repos-public-v2` voorkomt dat de
+nieuwe code responses van eerdere Worker-versies hergebruikt. De publieke route
 blijft `/repos`. Eerder gedownloade of extern gecachte gegevens worden hierdoor
 niet ingetrokken.
 
@@ -88,6 +88,58 @@ Worker-subrequests zelf bezoekers-IP-headers toevoegen. De browser kan bij uitva
 rechtstreeks naar GitHub terugvallen. Beide routes staan in de privacyverklaring.
 Zie de [Cloudflare-headerdocumentatie](https://developers.cloudflare.com/fundamentals/reference/http-headers/).
 
+## Caching en verzoekbudget
+
+De volledige openbare response blijft 180 seconden vers. Cache-hits krijgen een
+`Age`-header, zodat een browser de oorspronkelijke versheidsperiode niet opnieuw
+laat beginnen. GET en HEAD gebruiken dezelfde cache; HEAD heeft geen responsebody.
+Een onbeschikbare cache blokkeert geen succesvolle GitHub-response.
+
+Een afzonderlijke interne cache (`/repos-revalidation-v1`, maximaal één uur) bevat
+uitsluitend gecontroleerde openbare projectvelden, taalnamen, beperkte hexadecimale
+ETags, veilige paginalinks en numerieke rate-limitinformatie. Ruwe geauthenticeerde
+GitHub-responses, tokens, bezoekersheaders en foutberichten worden niet opgeslagen.
+Na afloop van de drie minuten vraagt de Worker met `If-None-Match` opnieuw aan
+GitHub of de gegevens veranderd zijn. Alleen een bijbehorende 304-response laat
+eerder gecontroleerde gegevens hergebruiken. Geauthenticeerde 304-responses tellen
+volgens GitHub niet mee voor de primaire rate limit. Zie de
+[GitHub-aanbevelingen voor REST-verzoeken](https://docs.github.com/en/rest/using-the-rest-api/best-practices-for-using-the-rest-api).
+
+GitHub-verzoeken verlopen na elkaar. De totale upstream-deadline is acht seconden,
+inclusief het lezen van JSON-bodies. Er zijn maximaal 40 GitHub-verzoeken per
+cache-miss; samen met maximaal vier Cache API-operaties blijft dit onder de
+50 subrequests van Workers Free. De repositorylijst volgt maximaal vijf pagina's
+van 100 repositories. Een fout, cyclus of extra pagina laat de lijst volledig
+mislukken. Bij onvoldoende tijd/budget of een mislukte taalrequest blijft de primaire
+programmeertaal beschikbaar. HTTP 403/429 stopt verdere taalrequests. Zie de
+[Cloudflare-limieten](https://developers.cloudflare.com/workers/platform/limits/).
+
+Bij bevestigde throttling of een numerieke `Retry-After` pauzeert de Worker nieuwe
+GitHub-verzoeken in dezelfde edge-cache. Hij gebruikt de wachttijd/resetinformatie,
+met een minimum van één seconde, een terugval van 60 seconden bij ontbrekende of
+verstreken resetinformatie, en een maximum van één uur. Bij langere opgegeven
+wachttijden eindigt de lokale pauze dus eerder; volg als beheerder altijd GitHub's
+volledige wachttijd. De foutresponse zelf blijft `no-store`; alleen de beperkte
+numerieke pauze-informatie gaat in de interne cache. Een lijst die vóór een
+taalrequest beschikbaar was, kan tijdens die pauze nog uit de verse responsecache
+komen.
+
+Deze caches en pauzes gelden per Cloudflare-datacenter; verschillende datacenters
+en gelijktijdige misses kunnen elk GitHub opvragen. De Cache API bundelt die misses
+niet automatisch. Cloudflare's afzonderlijke
+[Workers Cache](https://developers.cloudflare.com/workers/cache/) kan verzoeken
+bundelen en tiered caching bieden, maar vereist expliciete `cache.enabled`
+deploymentconfiguratie en een geschikte Wrangler-versie. Alleen deze broncode in
+het dashboard plakken activeert dat niet; het is hier niet ingeschakeld.
+
+De homepage wacht maximaal tien seconden op de proxy. Directe GitHub-terugval
+krijgt een totaalbudget van zes seconden, leest de eerste 100 repositories en
+vraagt optionele talen na elkaar op, maximaal 1,5 seconde per taalrequest. Hij stopt
+die taalrequests bij 403/429. Zowel Worker als browser accepteren alleen HTTP(S)
+homepages zonder gebruikersnaam/wachtwoord en bouwen repositorylinks zelf op.
+De GitHub REST-versie is expliciet vastgezet op `2022-11-28` om de bestaande
+responsevorm te behouden; de testdependencies zijn eveneens vastgezet.
+
 ## Verificatie
 
 ### GitHub-rate-limits vaststellen
@@ -126,16 +178,28 @@ een netwerkfout of ongeldige JSON. Fouten bij het ophalen van programmeertalen
 vallen al terug op de primaire taal en veroorzaken deze 502 niet.
 De diagnostiek doet geen extra API-verzoeken, schrijft geen logs en geeft geen
 ruwe foutberichten, IP-adressen, tokens of willekeurige headers terug. Foutresponses
-worden niet gecachet. Privacy en voorwaarden blijven qua datastromen, opslag,
-licenties en aansprakelijkheid ongewijzigd.
+worden niet gecachet; beperkte numerieke pauze-informatie kan wel in de hierboven
+beschreven interne cache staan. De privacyverklaring beschrijft deze caching in
+het Engels en Nederlands. De partijen, rechtsgrond en lokale browseropslag zijn
+ongewijzigd. De voorwaarden zijn gecontroleerd; projectlicenties en aansprakelijkheid
+worden door deze metadata- en betrouwbaarheidswijzigingen niet aangepast.
 
 ### Regressiecontrole
 
 Run vanuit de repositoryroot:
 
 ```sh
-node --test tests/privacy-regression.test.cjs
+npm ci
+npm test
 ```
+
+Gebruik Node.js 24 voor de geteste omgeving. De suites controleren de homepage,
+privacy/voorwaarden en de Worker in zowel een testharness als de echte
+Miniflare/workerd-runtime. Upstream-responses zijn gesimuleerd; alle gebruikte
+tokenwaarden zijn herkenbare nepwaarden. De runtimecontroles omvatten redirects,
+304/ETags, pagination, rate-limitpauzes, deadlines tijdens het lezen van bodies,
+requestbudgetten, HEAD en cachefouten. Testdependencies worden niet door de browser
+geladen en gaan niet mee in een Worker-deployment.
 
 Controleer na deployment `/repos`: alleen publieke projectvelden, geen token of
 privégegevens, en `X-Edge-Cache: MISS` gevolgd door `HIT` waar dezelfde edge-cache

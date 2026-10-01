@@ -21,7 +21,7 @@ function workerHarness(upstream) {
     async put(key, response) { entries.set(key.url, response.clone()); },
   };
   const context = vm.createContext({
-    Request, Response, URL,
+    Request, Response, URL, AbortController, setTimeout, clearTimeout,
     caches: { default: cache },
     fetch: async (url, options) => {
       // Match workerd's supported modes; Node also accepts the unsupported 'error'.
@@ -81,7 +81,7 @@ test('Worker excludes private/unknown repositories before language requests and 
     assert.equal(call.options.headers.Cookie, undefined);
     assert.equal(call.options.headers['X-Visitor-Data'], undefined);
   }
-  const cached = await harness.entries.get('https://api.ratelslop.studio/repos-public-v1').clone().text();
+  const cached = await harness.entries.get('https://api.ratelslop.studio/repos-public-v2').clone().text();
   assert.doesNotMatch(cached, /confidential|old-secret|test-secret-token|unneeded@example/);
   assert.equal(response.headers.get('Cache-Control'), 'public, max-age=180, s-maxage=180');
   const hit = await harness.request();
@@ -105,7 +105,7 @@ test('Worker errors do not expose upstream secrets or cache failed results', asy
     const response = await harness.request();
     assert.equal(response.status, 502);
     assert.deepEqual(await response.json(), { error: 'Failed to fetch repositories' });
-    assert.equal(harness.entries.size, 0);
+    assert.equal(harness.entries.has('https://api.ratelslop.studio/repos-public-v2'), false);
   }
 });
 
@@ -129,7 +129,7 @@ test('Worker identifies GitHub primary rate limits without exposing upstream dat
       reset: 1790850600, retry_after: null },
   });
   assert.equal(response.headers.get('x-visitor-data'), null);
-  assert.equal(harness.entries.size, 0);
+  assert.equal(harness.entries.has('https://api.ratelslop.studio/repos-public-v2'), false);
   assert.equal(harness.calls.length, 1);
 });
 
@@ -151,7 +151,7 @@ test('Worker distinguishes secondary limits, ambiguous forbidden responses, and 
       github: { status, rate_limit: rateLimit, limit: null, remaining: 40,
         reset: null, retry_after: 60 },
     });
-    assert.equal(harness.entries.size, 0);
+    assert.equal(harness.entries.has('https://api.ratelslop.studio/repos-public-v2'), false);
   }
 });
 
@@ -168,7 +168,7 @@ test('Worker handles non-JSON GitHub failures and rejects non-numeric diagnostic
     github: { status: 403, rate_limit: 'unconfirmed', limit: null, remaining: null,
       reset: null, retry_after: null },
   });
-  assert.equal(harness.entries.size, 0);
+  assert.equal(harness.entries.has('https://api.ratelslop.studio/repos-public-v2'), false);
 });
 
 test('Worker never reflects a configured token from upstream errors into responses or cache', async () => {
@@ -190,9 +190,13 @@ test('Worker never reflects a configured token from upstream errors into respons
     assert.equal(response.status, 502);
     assert.doesNotMatch(await response.text(), new RegExp(token));
     assert.doesNotMatch(JSON.stringify([...response.headers]), new RegExp(token));
-    assert.equal(harness.entries.size, 0);
+    assert.equal(harness.entries.has('https://api.ratelslop.studio/repos-public-v2'), false);
     assert.equal(harness.calls.length, 1);
     assert.equal(harness.calls[0].options.headers.Authorization, `Bearer ${token}`);
+    for (const stored of harness.entries.values()) {
+      assert.doesNotMatch(await stored.clone().text(), new RegExp(token));
+      assert.doesNotMatch(JSON.stringify([...stored.headers]), new RegExp(token));
+    }
   }
 });
 
@@ -257,11 +261,11 @@ test('Worker refuses repository and language redirects without sending requests 
       if (redirectedPath === '/repos') {
         assert.equal(response.status, 502);
         assert.equal(JSON.parse(body).github.status, redirectStatus);
-        assert.equal(harness.entries.size, 0);
+        assert.equal(harness.entries.has('https://api.ratelslop.studio/repos-public-v2'), false);
       } else {
         assert.equal(response.status, 200);
         assert.deepEqual(JSON.parse(body)[0].languages, ['JavaScript']);
-        assert.equal(harness.entries.size, 1);
+        assert.equal(harness.entries.size, 2);
       }
     }
   }
@@ -297,6 +301,7 @@ function pageHarness(file, { blocked = false, stored = {}, upstream = () => json
   const storage = new Map(Object.entries(stored));
   const media = { matches: false, addEventListener(type, listener) { this.listener = listener; } };
   const context = vm.createContext({
+    URL, AbortController, setTimeout, clearTimeout,
     document: {
       documentElement,
       getElementById: id => elements.get(id) || null,
