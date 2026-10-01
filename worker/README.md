@@ -65,6 +65,47 @@ Zie de [Cloudflare-headerdocumentatie](https://developers.cloudflare.com/fundame
 
 ## Verificatie
 
+### GitHub-rate-limits vaststellen
+
+Deploy de bijgewerkte Worker en open `/repos`. Bij een mislukte repositorylijst
+blijft de HTTP-status 502, maar bevat de JSON-response nu een `github`-object met
+de upstream-status en uitsluitend numerieke rate-limitgegevens:
+
+```json
+{
+  "error": "Failed to fetch repositories",
+  "github": {
+    "status": 403,
+    "rate_limit": "primary",
+    "limit": 60,
+    "remaining": 0,
+    "reset": 1790850600,
+    "retry_after": null
+  }
+}
+```
+
+Dit is een voorbeeld, geen meting van de live Worker. `rate_limit: "primary"`
+bevestigt een primaire rate limit: GitHub gaf 403/429 en nul resterende verzoeken.
+`"secondary"` betekent dat GitHub een secundaire rate limit meldde.
+`"unconfirmed"` betekent dat 403/429 onvoldoende informatie bevat om throttling
+vast te stellen; een 403 alleen bewijst geen rate limit. Bij andere statussen is
+`rate_limit` null. Ontbrekende of ongeldige numerieke headers worden null.
+`reset` is een Unix-tijdstip in seconden; `retry_after` is de wachttijd in seconden.
+Wacht bij throttling tot het toepasselijke reset-tijdstip en/of de aangegeven
+wachttijd voorbij is voordat je opnieuw probeert. Zie de
+[GitHub-documentatie](https://docs.github.com/en/rest/using-the-rest-api/troubleshooting-the-rest-api#rate-limit-errors).
+
+Zonder `github`-object is er geen bruikbare upstream-foutresponse: bijvoorbeeld
+een netwerkfout of ongeldige JSON. Fouten bij het ophalen van programmeertalen
+vallen al terug op de primaire taal en veroorzaken deze 502 niet.
+De diagnostiek doet geen extra API-verzoeken, schrijft geen logs en geeft geen
+ruwe foutberichten, IP-adressen, tokens of willekeurige headers terug. Foutresponses
+worden niet gecachet. Privacy en voorwaarden blijven qua datastromen, opslag,
+licenties en aansprakelijkheid ongewijzigd.
+
+### Regressiecontrole
+
 Run vanuit de repositoryroot:
 
 ```sh

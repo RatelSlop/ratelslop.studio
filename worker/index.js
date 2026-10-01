@@ -12,6 +12,55 @@ const CACHE_TTL_SECONDS = 180; // 3 minutes cache (2-5 min freshness requirement
 // A new key prevents responses cached by the older, unfiltered Worker being reused.
 const CACHE_PATH = '/repos-public-v1';
 
+function numericHeader(response, name) {
+  const value = response.headers.get(name);
+  if (value === null || !/^\d+$/.test(value)) return null;
+  const number = Number(value);
+  return Number.isSafeInteger(number) ? number : null;
+}
+
+async function githubFailureDiagnostics(response) {
+  const remaining = numericHeader(response, 'x-ratelimit-remaining');
+  let rateLimit = null;
+  if (response.status === 403 || response.status === 429) {
+    rateLimit = remaining === 0 ? 'primary' : 'unconfirmed';
+    // GitHub error messages can contain the source IP. Only expose a classification.
+    if (rateLimit !== 'primary') {
+      try {
+        const body = await response.json();
+        if (typeof body?.message === 'string' && /secondary rate limit/i.test(body.message)) {
+          rateLimit = 'secondary';
+        }
+      } catch {
+        // A non-JSON error still has useful status and numeric headers.
+      }
+    }
+  }
+  return {
+    status: response.status,
+    rate_limit: rateLimit,
+    limit: numericHeader(response, 'x-ratelimit-limit'),
+    remaining,
+    reset: numericHeader(response, 'x-ratelimit-reset'),
+    retry_after: numericHeader(response, 'retry-after'),
+  };
+}
+
+function repositoryFailure(github) {
+  return new Response(
+    JSON.stringify({ error: 'Failed to fetch repositories', ...(github ? { github } : {}) }),
+    {
+      status: 502,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*',
+        'Cache-Control': 'no-store',
+        'X-Edge-Cache': 'MISS',
+      },
+    }
+  );
+}
+
 function publicRepositoryMetadata(repo) {
   return {
     name: repo.name,
@@ -77,7 +126,7 @@ export default {
       );
 
       if (!orgReposRes.ok) {
-        throw new Error(`GitHub API error: ${orgReposRes.status}`);
+        return repositoryFailure(await githubFailureDiagnostics(orgReposRes));
       }
 
       const repos = await orgReposRes.json();
@@ -129,17 +178,7 @@ export default {
 
       return response;
     } catch {
-      return new Response(
-        JSON.stringify({ error: 'Failed to fetch repositories' }),
-        {
-          status: 502,
-          headers: {
-            'Content-Type': 'application/json',
-            'Access-Control-Allow-Origin': '*',
-            'Cache-Control': 'no-cache',
-          },
-        }
-      );
+      return repositoryFailure();
     }
   },
 };

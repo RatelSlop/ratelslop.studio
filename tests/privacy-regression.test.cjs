@@ -94,7 +94,6 @@ test('Worker accepts empty public results and works without a token', async () =
 test('Worker errors do not expose upstream secrets or cache failed results', async () => {
   for (const upstream of [
     () => { throw new Error('internal secret'); },
-    () => new Response('internal secret', { status: 403 }),
     () => json({ unexpected: 'internal secret' }),
   ]) {
     const harness = workerHarness(upstream);
@@ -102,6 +101,115 @@ test('Worker errors do not expose upstream secrets or cache failed results', asy
     assert.equal(response.status, 502);
     assert.deepEqual(await response.json(), { error: 'Failed to fetch repositories' });
     assert.equal(harness.entries.size, 0);
+  }
+});
+
+test('Worker identifies GitHub primary rate limits without exposing upstream data', async () => {
+  const harness = workerHarness(() => new Response(JSON.stringify({
+    message: 'API rate limit exceeded for 192.0.2.1. internal secret',
+  }), {
+    status: 403,
+    headers: {
+      'x-ratelimit-limit': '60', 'x-ratelimit-remaining': '0',
+      'x-ratelimit-reset': '1790850600', 'x-visitor-data': 'internal secret',
+    },
+  }));
+  const response = await harness.request('GET', '/repos', 'test-secret-token');
+  assert.equal(response.status, 502);
+  assert.equal(response.headers.get('Cache-Control'), 'no-store');
+  assert.equal(response.headers.get('X-Edge-Cache'), 'MISS');
+  assert.deepEqual(await response.json(), {
+    error: 'Failed to fetch repositories',
+    github: { status: 403, rate_limit: 'primary', limit: 60, remaining: 0,
+      reset: 1790850600, retry_after: null },
+  });
+  assert.equal(response.headers.get('x-visitor-data'), null);
+  assert.equal(harness.entries.size, 0);
+  assert.equal(harness.calls.length, 1);
+});
+
+test('Worker distinguishes secondary limits, ambiguous forbidden responses, and other errors', async () => {
+  for (const { status, message, rateLimit } of [
+    { status: 429, message: 'You have exceeded a secondary rate limit. internal secret', rateLimit: 'secondary' },
+    { status: 403, message: 'Resource not accessible. internal secret', rateLimit: 'unconfirmed' },
+    { status: 401, message: 'Bad credentials. internal secret', rateLimit: null },
+    { status: 500, message: 'internal secret', rateLimit: null },
+  ]) {
+    const harness = workerHarness(() => new Response(JSON.stringify({ message }), {
+      status,
+      headers: { 'x-ratelimit-remaining': '40', 'retry-after': '60' },
+    }));
+    const response = await harness.request();
+    assert.equal(response.status, 502);
+    assert.deepEqual(await response.json(), {
+      error: 'Failed to fetch repositories',
+      github: { status, rate_limit: rateLimit, limit: null, remaining: 40,
+        reset: null, retry_after: 60 },
+    });
+    assert.equal(harness.entries.size, 0);
+  }
+});
+
+test('Worker handles non-JSON GitHub failures and rejects non-numeric diagnostic headers', async () => {
+  const harness = workerHarness(() => new Response('internal secret', {
+    status: 403,
+    headers: {
+      'x-ratelimit-limit': 'internal secret', 'x-ratelimit-remaining': '-1',
+      'x-ratelimit-reset': '9007199254740992', 'retry-after': '1.5',
+    },
+  }));
+  assert.deepEqual(await (await harness.request()).json(), {
+    error: 'Failed to fetch repositories',
+    github: { status: 403, rate_limit: 'unconfirmed', limit: null, remaining: null,
+      reset: null, retry_after: null },
+  });
+  assert.equal(harness.entries.size, 0);
+});
+
+test('Worker never reflects a configured token from upstream errors into responses or cache', async () => {
+  const token = 'fake-token-canary-do-not-expose';
+  for (const upstream of [
+    () => { throw new Error(token); },
+    () => new Response(token),
+    () => json({ message: token }),
+    () => new Response(JSON.stringify({ message: token }), {
+      status: 403, headers: { 'x-ratelimit-remaining': '0', 'x-upstream-secret': token },
+    }),
+    () => new Response(JSON.stringify({ message: `secondary rate limit ${token}` }), {
+      status: 429, headers: { 'x-ratelimit-limit': token, 'retry-after': token },
+    }),
+    () => new Response(token, { status: 401, headers: { 'authorization': `Bearer ${token}` } }),
+  ]) {
+    const harness = workerHarness(upstream);
+    const response = await harness.request('GET', '/repos', token);
+    assert.equal(response.status, 502);
+    assert.doesNotMatch(await response.text(), new RegExp(token));
+    assert.doesNotMatch(JSON.stringify([...response.headers]), new RegExp(token));
+    assert.equal(harness.entries.size, 0);
+    assert.equal(harness.calls.length, 1);
+    assert.equal(harness.calls[0].options.headers.Authorization, `Bearer ${token}`);
+  }
+});
+
+test('Worker language request failures preserve public project responses and caching without leaking errors', async () => {
+  for (const languageResponse of [
+    () => { throw new Error('fake-token-canary-do-not-expose'); },
+    () => new Response('fake-token-canary-do-not-expose', { status: 403 }),
+    () => new Response('invalid JSON fake-token-canary-do-not-expose'),
+  ]) {
+    const harness = workerHarness(url => url.includes('/languages')
+      ? languageResponse()
+      : json([{ name: 'visible', private: false, language: 'JavaScript' }]));
+    const response = await harness.request('GET', '/repos', 'fake-token-canary-do-not-expose');
+    assert.equal(response.status, 200);
+    const body = await response.json();
+    assert.deepEqual(body[0].languages, ['JavaScript']);
+    assert.equal(body[0].name, 'visible');
+    assert.doesNotMatch(JSON.stringify(body), /fake-token-canary/);
+    const cached = await harness.request();
+    assert.equal(cached.headers.get('X-Edge-Cache'), 'HIT');
+    assert.deepEqual(await cached.json(), body);
+    assert.equal(harness.calls.length, 2);
   }
 });
 
@@ -194,29 +302,37 @@ test('Empty proxy response does not cause unnecessary direct GitHub requests', a
   assert.equal(page.elements.get('repo-table').style.display, 'none');
 });
 
-test('Direct fallback filters public projects and omits credentials and referrers', async () => {
-  const page = pageHarness('index.html', {
-    upstream: url => {
-      if (url.includes('api.ratelslop.studio')) throw new Error('proxy unavailable');
-      if (url.includes('/languages')) return json({ JavaScript: 10 });
-      return json([
-        { name: 'public', private: false, html_url: 'https://github.com/RatelSlop/public' },
-        { name: 'secret', private: true }, { name: 'unknown' },
-      ]);
-    },
+for (const proxyFailure of ['network', 'diagnostic 502']) {
+  test(`Direct fallback after ${proxyFailure} filters public projects and omits credentials and referrers`, async () => {
+    const page = pageHarness('index.html', {
+      upstream: url => {
+        if (url.includes('api.ratelslop.studio')) {
+          if (proxyFailure === 'network') throw new Error('proxy unavailable');
+          return new Response(JSON.stringify({
+            error: 'Failed to fetch repositories',
+            github: { status: 403, rate_limit: 'primary', limit: 60, remaining: 0 },
+          }), { status: 502, headers: { 'Content-Type': 'application/json' } });
+        }
+        if (url.includes('/languages')) return json({ JavaScript: 10 });
+        return json([
+          { name: 'public', private: false, html_url: 'https://github.com/RatelSlop/public' },
+          { name: 'secret', private: true }, { name: 'unknown' },
+        ]);
+      },
+    });
+    await new Promise(setImmediate);
+    assert.equal(page.calls.length, 3);
+    assert.equal(new URL(page.calls[1].url).searchParams.get('type'), 'public');
+    assert.ok(page.calls[2].url.includes('/public/languages'));
+    for (const call of page.calls) {
+      assert.equal(call.options.credentials, 'omit');
+      assert.equal(call.options.referrerPolicy, 'no-referrer');
+    }
+    assert.deepEqual(page.writes, []);
+    assert.equal(page.elements.get('repo-table').style.display, 'table');
+    assert.doesNotMatch(page.elements.get('repo-list').children.map(row => row.innerHTML).join(''), /secret|unknown/);
   });
-  await new Promise(setImmediate);
-  assert.equal(page.calls.length, 3);
-  assert.equal(new URL(page.calls[1].url).searchParams.get('type'), 'public');
-  assert.ok(page.calls[2].url.includes('/public/languages'));
-  for (const call of page.calls) {
-    assert.equal(call.options.credentials, 'omit');
-    assert.equal(call.options.referrerPolicy, 'no-referrer');
-  }
-  assert.deepEqual(page.writes, []);
-  assert.equal(page.elements.get('repo-table').style.display, 'table');
-  assert.doesNotMatch(page.elements.get('repo-list').children.map(row => row.innerHTML).join(''), /secret|unknown/);
-});
+}
 
 function normalizeText(html) {
   const entities = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", bull: '•' };
