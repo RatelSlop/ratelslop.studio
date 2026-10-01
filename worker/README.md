@@ -70,8 +70,13 @@ tokens, beperk hun toegang en vervang ze indien nodig. De expliciete public-quer
 filter en beperkte responsevelden blijven nodig als extra beveiliging. Zie de
 [GitHub-documentatie van het endpoint](https://docs.github.com/en/rest/repos/repos#list-organization-repositories).
 
-De Worker volgt geen redirects bij GitHub-verzoeken (`redirect: 'error'`), zodat
+De Worker volgt geen redirects bij GitHub-verzoeken (`redirect: 'manual'`), zodat
 de Authorization-header niet naar een redirectbestemming wordt doorgestuurd.
+Cloudflare ondersteunt alleen `follow` en `manual`; `error` veroorzaakt daar een
+runtimefout voordat het GitHub-verzoek wordt verstuurd. Zie de
+[workerd-implementatie](https://github.com/cloudflare/workerd/blob/main/src/workerd/api/http.c%2B%2B)
+en Cloudflare's advies voor
+[redirect-beleid](https://developers.cloudflare.com/workers/runtime-apis/request/#properties).
 Een onverwachte redirect laat de repositorylijst veilig mislukken; bij een
 taalverzoek wordt de primaire programmeertaal gebruikt. Deploy deze code apart
 naar Cloudflare om deze beveiliging ook op de actieve Worker toe te passen.

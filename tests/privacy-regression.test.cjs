@@ -24,6 +24,10 @@ function workerHarness(upstream) {
     Request, Response, URL,
     caches: { default: cache },
     fetch: async (url, options) => {
+      // Match workerd's supported modes; Node also accepts the unsupported 'error'.
+      if (options?.redirect !== undefined && !['follow', 'manual'].includes(options.redirect)) {
+        throw new TypeError('Unsupported Worker redirect mode');
+      }
       calls.push({ url, options });
       return upstream(url, options);
     },
@@ -252,6 +256,7 @@ test('Worker refuses repository and language redirects without sending requests 
       assert.equal(destinationRequests, 0, `${redirectedPath} ${redirectStatus} destination`);
       if (redirectedPath === '/repos') {
         assert.equal(response.status, 502);
+        assert.equal(JSON.parse(body).github.status, redirectStatus);
         assert.equal(harness.entries.size, 0);
       } else {
         assert.equal(response.status, 200);
