@@ -90,10 +90,25 @@ Zie de [Cloudflare-headerdocumentatie](https://developers.cloudflare.com/fundame
 
 ## Caching en verzoekbudget
 
-De volledige openbare response blijft 180 seconden vers. Cache-hits krijgen een
-`Age`-header, zodat een browser de oorspronkelijke versheidsperiode niet opnieuw
-laat beginnen. GET en HEAD gebruiken dezelfde cache; HEAD heeft geen responsebody.
-Een onbeschikbare cache blokkeert geen succesvolle GitHub-response.
+De volledige openbare response blijft 180 seconden vers. Zowel cache-misses als
+cache-hits krijgen `Cache-Control: public, max-age=180, s-maxage=180`; de Worker
+herstelt dit expliciet als de Cache API een langere browserduur teruggeeft.
+Cache-hits behouden hun `Age`-header en gebruiken ook de oorspronkelijke `Date`,
+zodat een browser de versheidsperiode niet opnieuw laat beginnen. Bij een leeftijd
+van 180 seconden of meer, ongeldige `Age` of ontbrekende bruikbare leeftijd vraagt
+de Worker GitHub opnieuw op. GET en HEAD gebruiken dezelfde cache; HEAD heeft geen
+responsebody. Een onbeschikbare cache blokkeert geen succesvolle GitHub-response.
+
+Controleer bij deployment ook Cloudflare **Browser Cache TTL**: gebruik
+**Respect Existing Headers** en laat toepasselijke Cache Rules / Page Rules voor
+`api.ratelslop.studio` de browserduur niet overschrijven. Cloudflare kan een kortere
+`max-age` anders verhogen tot de ingestelde browserduur; de standaardwaarde is vier
+uur. De broncode herstelt headers die uit de Cache API komen, maar voorkomt geen
+latere overschrijving door platforminstellingen. Controleer daarom op het live
+endpoint zowel MISS als HIT en HEAD: `max-age=180`, `s-maxage=180` en bij een HIT een
+geldige `Age` kleiner dan 180. Eerder in browsers opgeslagen responses met een
+langere duur worden niet ingetrokken. Zie de
+[Browser Cache TTL-documentatie](https://developers.cloudflare.com/cache/how-to/edge-browser-cache-ttl/).
 
 Een afzonderlijke interne cache (`/repos-revalidation-v1`, maximaal één uur) bevat
 uitsluitend gecontroleerde openbare projectvelden, taalnamen, beperkte hexadecimale

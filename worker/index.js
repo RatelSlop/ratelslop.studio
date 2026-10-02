@@ -9,6 +9,7 @@
 
 const GITHUB_ORG = 'RatelSlop';
 const CACHE_TTL_SECONDS = 180; // 3 minutes cache (2-5 min freshness requirement)
+const PUBLIC_CACHE_CONTROL = `public, max-age=${CACHE_TTL_SECONDS}, s-maxage=${CACHE_TTL_SECONDS}`;
 // Separate this response format from earlier Worker cache entries.
 const CACHE_PATH = '/repos-public-v2';
 
@@ -91,9 +92,13 @@ const MAX_GITHUB_REQUESTS = 40;
 const MAX_REPOSITORY_PAGES = 5;
 const REPOSITORIES_URL = `https://api.github.com/orgs/${GITHUB_ORG}/repos?type=public&sort=pushed&direction=desc&per_page=100`;
 
+function validRepositoryRecord(repo) {
+  return repo && typeof repo.private === 'boolean' && typeof repo.name === 'string'
+    && /^[A-Za-z0-9_.-]{1,100}$/.test(repo.name);
+}
+
 function validRepository(repo) {
-  return repo && repo.private === false && typeof repo.name === 'string'
-    && /^[A-Za-z0-9_.-]{1,100}$/.test(repo.name) && !repo.name.startsWith('.');
+  return validRepositoryRecord(repo) && repo.private === false && !repo.name.startsWith('.');
 }
 
 function validEtag(value) {
@@ -166,17 +171,23 @@ function cacheWrite(cache, key, response, ctx) {
   ctx.waitUntil(Promise.resolve().then(() => cache.put(key, response)).catch(() => {}));
 }
 
-function forClient(response, method, cacheStatus) {
+function cacheAge(response) {
+  const age = numericHeader(response, 'age');
+  const date = Date.parse(response.headers.get('date'));
+  // Never restart freshness when cache metadata is missing or malformed.
+  if (response.headers.has('age') && age === null) return null;
+  if (!Number.isFinite(date) && age === null) return null;
+  // Cache implementations can update Date: retain their measured Age too.
+  return Math.max(age || 0, Number.isFinite(date) ? Math.floor((Date.now() - date) / 1000) : 0);
+}
+
+function forClient(response, method, cacheStatus, age) {
   if (method === 'HEAD' && response.body) response.body.cancel().catch(() => {});
   const result = new Response(method === 'HEAD' ? null : response.body, response);
   if (cacheStatus) result.headers.set('X-Edge-Cache', cacheStatus);
-  if (cacheStatus === 'HIT') {
-    const date = Date.parse(response.headers.get('date'));
-    // Cache implementations can update Date: retain their measured Age too.
-    const age = Math.max(numericHeader(response, 'age') || 0,
-      Number.isFinite(date) ? Math.floor((Date.now() - date) / 1000) : 0);
-    result.headers.set('Age', String(age));
-  }
+  // The Cache API or zone settings may have rewritten a stored max-age.
+  if (response.status === 200) result.headers.set('Cache-Control', PUBLIC_CACHE_CONTROL);
+  if (cacheStatus === 'HIT') result.headers.set('Age', String(age));
   result.headers.set('X-Content-Type-Options', 'nosniff');
   return result;
 }
@@ -233,7 +244,11 @@ export default {
     const cacheKey = new Request(url.origin + CACHE_PATH);
     const stateKey = new Request(url.origin + REVALIDATION_PATH);
     const cached = await cacheRead(cache, cacheKey);
-    if (cached) return forClient(cached, request.method, 'HIT');
+    const age = cached ? cacheAge(cached) : null;
+    if (cached?.status === 200 && age !== null && age < CACHE_TTL_SECONDS) {
+      return forClient(cached, request.method, 'HIT', age);
+    }
+    if (cached?.body) await cached.body.cancel().catch(() => {});
 
     let state = emptyState();
     try {
@@ -276,7 +291,10 @@ export default {
           if (!previous?.etag) throw new Error('Unexpected GitHub 304');
           page = { ...previous, next: result.link === null ? previous.next : nextRepositoryUrl(result.link) };
         } else {
-          if (!Array.isArray(result.value)) throw new Error('Invalid GitHub repository response');
+          if (!Array.isArray(result.value)
+            || result.value.length && !result.value.some(validRepositoryRecord)) {
+            throw new Error('Invalid GitHub repository response');
+          }
           page = {
             repos: result.value.filter(validRepository).map(publicRepositoryMetadata),
             etag: result.etag, next: nextRepositoryUrl(result.link),
@@ -314,7 +332,7 @@ export default {
           headers: {
             'Content-Type': 'application/json; charset=utf-8',
             'Access-Control-Allow-Origin': '*',
-            'Cache-Control': `public, max-age=${CACHE_TTL_SECONDS}, s-maxage=${CACHE_TTL_SECONDS}`,
+            'Cache-Control': PUBLIC_CACHE_CONTROL,
             'X-Edge-Cache': 'MISS', Date: new Date().toUTCString(),
           },
         });

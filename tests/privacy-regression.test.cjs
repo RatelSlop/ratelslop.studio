@@ -284,7 +284,9 @@ function pageHarness(file, { blocked = false, stored = {}, upstream = () => json
   const elements = new Map();
   function element() {
     return {
-      textContent: '', innerHTML: '', value: '', style: {}, children: [], listeners: {},
+      textContent: '', innerHTML: '', value: '', style: {}, children: [], listeners: {}, attributes: {},
+      setAttribute(name, value) { this.attributes[name] = value; },
+      getAttribute(name) { return this.attributes[name] ?? null; },
       addEventListener(type, listener) { this.listeners[type] = listener; },
       appendChild(child) { this.children.push(child); },
     };
@@ -359,7 +361,84 @@ test('Empty proxy response does not cause unnecessary direct GitHub requests', a
   assert.equal(page.calls.length, 1);
   assert.equal(page.calls[0].url, 'https://api.ratelslop.studio/repos');
   assert.equal(page.elements.get('repo-table').style.display, 'none');
+  assert.equal(page.elements.get('coming-soon-container').hidden, false);
+  assert.equal(page.elements.get('repo-status').hidden, true);
 });
+
+test('Homepage shows loading until a validated list arrives, including during language changes', async () => {
+  let resolveRepos;
+  const page = pageHarness('index.html', { upstream: () => new Promise(resolve => { resolveRepos = resolve; }) });
+  assert.equal(page.elements.get('repo-status').hidden, false);
+  assert.equal(page.elements.get('repo-status-title').textContent, 'Loading projects');
+  assert.equal(page.elements.get('repo-status').getAttribute('aria-busy'), 'true');
+  assert.equal(page.elements.get('coming-soon-container').hidden, true);
+  assert.equal(page.elements.get('repo-table').hidden, true);
+  page.elements.get('lang-select').listeners.change({ target: { value: 'nl' } });
+  assert.equal(page.elements.get('repo-status-title').textContent, 'Projecten laden');
+  assert.equal(page.calls.length, 1);
+  resolveRepos(json([{ name: 'public', private: false }]));
+  await new Promise(setImmediate);
+  assert.equal(page.elements.get('repo-status').hidden, true);
+  assert.equal(page.elements.get('coming-soon-container').hidden, true);
+  assert.equal(page.elements.get('repo-table').hidden, false);
+  assert.equal(page.elements.get('repo-status').getAttribute('aria-busy'), 'false');
+});
+
+test('Homepage keeps loading during fallback and only shows coming soon after confirmed empty data', async () => {
+  let rejectProxy;
+  let resolveFallback;
+  const page = pageHarness('index.html', { upstream: url => new Promise((resolve, reject) => {
+    if (url.includes('api.ratelslop.studio')) rejectProxy = reject;
+    else resolveFallback = resolve;
+  }) });
+  rejectProxy(new Error('proxy unavailable'));
+  await new Promise(setImmediate);
+  assert.equal(page.calls.length, 2);
+  assert.equal(page.elements.get('repo-status-title').textContent, 'Loading projects');
+  assert.equal(page.elements.get('coming-soon-container').hidden, true);
+  assert.equal(page.elements.get('retry-repos').hidden, true);
+  resolveFallback(json([]));
+  await new Promise(setImmediate);
+  assert.equal(page.elements.get('repo-status').hidden, true);
+  assert.equal(page.elements.get('coming-soon-container').hidden, false);
+  assert.equal(page.elements.get('repo-table').hidden, true);
+});
+
+for (const failure of ['network', 'http', 'invalid data', 'invalid array']) {
+  test(`Homepage shows a translated error after ${failure} and retry can recover`, async () => {
+    let recovering = false;
+    let resolveRetry;
+    const page = pageHarness('index.html', { upstream: url => {
+      if (recovering) return new Promise(resolve => { resolveRetry = resolve; });
+      if (failure === 'network') throw new Error('unavailable');
+      return failure === 'http' ? new Response('', { status: 502 })
+        : failure === 'invalid array' ? json([null, { error: 'invalid list' }]) : json({ error: 'invalid list' });
+    } });
+    await new Promise(setImmediate);
+    assert.equal(page.elements.get('coming-soon-container').hidden, true);
+    assert.equal(page.elements.get('repo-table').hidden, true);
+    assert.equal(page.elements.get('repo-status-title').textContent, 'Projects could not be loaded');
+    assert.equal(page.elements.get('retry-repos').hidden, false);
+    assert.equal(page.elements.get('repo-status').getAttribute('aria-busy'), 'false');
+    page.elements.get('lang-select').listeners.change({ target: { value: 'nl' } });
+    assert.equal(page.elements.get('repo-status-title').textContent, 'Projecten konden niet worden geladen');
+    assert.equal(page.elements.get('retry-repos').textContent, 'Opnieuw proberen');
+    assert.equal(page.calls.length, 2);
+    recovering = true;
+    page.elements.get('retry-repos').listeners.click();
+    page.elements.get('retry-repos').listeners.click();
+    assert.equal(page.calls.length, 3, 'overlapping retries share one request');
+    assert.equal(page.elements.get('repo-status-title').textContent, 'Projecten laden');
+    assert.equal(page.elements.get('retry-repos').hidden, true);
+    resolveRetry(json([{ name: 'recovered', private: false }]));
+    await new Promise(setImmediate);
+    assert.equal(page.elements.get('repo-table').hidden, false);
+    assert.equal(page.elements.get('repo-status').hidden, true);
+    assert.equal(page.elements.get('coming-soon-container').hidden, true);
+    assert.match(page.elements.get('repo-list').children[0].innerHTML, /recovered/);
+    assert.ok(page.calls.every(call => call.options.credentials === 'omit' && call.options.referrerPolicy === 'no-referrer'));
+  });
+}
 
 for (const proxyFailure of ['network', 'diagnostic 502']) {
   test(`Direct fallback after ${proxyFailure} filters public projects and omits credentials and referrers`, async () => {

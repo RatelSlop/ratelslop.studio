@@ -117,6 +117,10 @@ test('Homepage metadata uses canonical repository links and normalized public fi
     language: 'CSS', languages: ['CSS'], stargazers_count: 12, archived: true,
   });
   assert.throws(() => api.publicProjects({ error: 'invalid list' }), /Invalid repository list/);
+  for (const repos of [[null], [{}], [{ error: 'invalid list' }], [{ name: '../invalid', private: false }]]) {
+    assert.throws(() => api.publicProjects(repos), /Invalid repository list/);
+  }
+  assert.deepEqual(plain(api.publicProjects([{ name: '.github', private: false }])), []);
 });
 
 test('Homepage language maps reject malformed shapes and ignore invalid byte counts', () => {
@@ -145,6 +149,7 @@ test('Homepage accepts normalized proxy data and avoids fallback for an empty pu
     }
     assert.equal(page.calls.length, 1);
     assert.equal(page.calls[0].url, 'https://api.ratelslop.studio/repos');
+    assert.equal(page.calls[0].options.cache, 'no-cache', 'previously cached browser data must be revalidated');
     assertPrivateRequests(page.calls);
     assert.equal(page.timers.size, 0);
   }

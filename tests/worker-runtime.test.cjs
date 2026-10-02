@@ -40,6 +40,7 @@ test('workerd serves/cache filters public metadata and gives HEAD no body', asyn
       { name: 'private', private: true, description: token }]));
   const head = await mf.dispatchFetch(endpoint, { method: 'HEAD' });
   assert.equal(head.status, 200);
+  assert.equal(head.headers.get('Cache-Control'), 'public, max-age=180, s-maxage=180');
   assert.equal(await head.text(), '');
   const get = await mf.dispatchFetch(endpoint);
   const body = await get.text();
@@ -67,6 +68,19 @@ test('workerd conditional refresh reuses only corresponding validated public dat
   const second = await (await mf.dispatchFetch(endpoint)).json();
   assert.deepEqual(second, first);
   assert.equal(calls.length, 4);
+});
+
+test('workerd distinguishes malformed repository arrays from confirmed empty public lists', async t => {
+  for (const repos of [[null], [{ error: 'invalid list' }], [], [{ name: '.github', private: false }]]) {
+    const malformed = repos.length > 0 && !repos[0]?.name;
+    const { mf, calls, cache } = await runtime(t, () => json(repos));
+    const response = await mf.dispatchFetch(endpoint);
+    assert.equal(response.status, malformed ? 502 : 200);
+    assert.deepEqual(await response.json(), malformed ? { error: 'Failed to fetch repositories' } : []);
+    assert.equal(response.headers.get('Cache-Control'), malformed ? 'no-store' : 'public, max-age=180, s-maxage=180');
+    assert.equal(Boolean(await cache.match(outputKey)), !malformed);
+    assert.equal(calls.length, 1);
+  }
 });
 
 test('workerd handles real numeric GitHub pagination links without changing organization', async t => {
@@ -117,6 +131,7 @@ test('workerd cooldown pauses upstream calls and keeps diagnostic storage saniti
   }));
   const first = await mf.dispatchFetch(endpoint);
   assert.equal(first.status, 502);
+  assert.equal(first.headers.get('Cache-Control'), 'no-store');
   assert.ok(Number(first.headers.get('Retry-After')) > 0);
   assert.ok(!(await first.text()).includes(token));
   const second = await mf.dispatchFetch(endpoint);
@@ -180,18 +195,56 @@ test('workerd repository-body deadline returns a sanitized failure without cachi
   assert.ok(Date.now() - start < 2000);
 });
 
-test('workerd cache Age preserves the original browser freshness window', async t => {
-  // Model a sixty-second-old Cache API hit with a refreshed Date header.
+test('workerd corrects rewritten cache headers while preserving Age for GET and HEAD', async t => {
+  // Model the live Cache API rewriting max-age to four hours and refreshing Date.
   const agedHit = source.replace('return await cache.match(key);',
-    "const hit = await cache.match(key); if (!hit) return hit; const aged = new Response(hit.body, hit); aged.headers.set('Age', '60'); aged.headers.set('Date', new Date().toUTCString()); return aged;");
+    "const hit = await cache.match(key); if (!hit) return hit; const aged = new Response(hit.body, hit); aged.headers.set('Cache-Control', 'public, max-age=14400, s-maxage=180'); aged.headers.set('Age', '60'); aged.headers.set('Date', new Date().toUTCString()); return aged;");
   const { mf, calls } = await runtime(t, () => json([]), agedHit);
+  const miss = await mf.dispatchFetch(endpoint);
+  assert.equal(miss.headers.get('X-Edge-Cache'), 'MISS');
+  assert.equal(miss.headers.get('Cache-Control'), 'public, max-age=180, s-maxage=180');
+  for (const method of ['GET', 'HEAD']) {
+    const response = await mf.dispatchFetch(endpoint, { method });
+    assert.equal(response.headers.get('X-Edge-Cache'), 'HIT');
+    assert.equal(response.headers.get('Cache-Control'), 'public, max-age=180, s-maxage=180');
+    assert.ok(Number(response.headers.get('Age')) >= 60);
+    assert.ok(Number(response.headers.get('Age')) < 65);
+    assert.equal(await response.text(), method === 'HEAD' ? '' : '[]');
+  }
+  assert.equal(calls.length, 1);
+});
+
+test('workerd uses an older Date when cache Age understates response age', async t => {
+  const datedHit = source.replace('return await cache.match(key);',
+    "const hit = await cache.match(key); if (!hit) return hit; const dated = new Response(hit.body, hit); dated.headers.set('Age', '0'); dated.headers.set('Date', new Date(Date.now() - 60000).toUTCString()); return dated;");
+  const { mf, calls } = await runtime(t, () => json([]), datedHit);
   await mf.dispatchFetch(endpoint);
   const response = await mf.dispatchFetch(endpoint);
   assert.equal(response.headers.get('X-Edge-Cache'), 'HIT');
-  assert.equal(response.headers.get('Cache-Control'), 'public, max-age=180, s-maxage=180');
   assert.ok(Number(response.headers.get('Age')) >= 60);
   assert.ok(Number(response.headers.get('Age')) < 65);
   assert.equal(calls.length, 1);
+});
+
+test('workerd refreshes stale or untrustworthy cache freshness instead of restarting it', async t => {
+  for (const change of [
+    "changed.headers.set('Age', '180');",
+    "changed.headers.set('Age', '-1');",
+    "changed.headers.set('Age', '9007199254740992');",
+    "changed.headers.delete('Age'); changed.headers.delete('Date');",
+    "changed.headers.set('Age', '0'); changed.headers.set('Date', new Date(Date.now() - 181000).toUTCString());",
+  ]) {
+    const rewrittenHit = source.replace('return await cache.match(key);',
+      `const hit = await cache.match(key); if (!hit || new URL(key.url).pathname !== '/repos-public-v2') return hit; const changed = new Response(hit.body, hit); changed.headers.set('Cache-Control', 'public, max-age=14400, s-maxage=180'); ${change} return changed;`);
+    const { mf, calls } = await runtime(t, () => json([]), rewrittenHit);
+    await mf.dispatchFetch(endpoint);
+    const response = await mf.dispatchFetch(endpoint);
+    assert.equal(response.status, 200, change);
+    assert.equal(response.headers.get('X-Edge-Cache'), 'MISS', change);
+    assert.equal(response.headers.get('Cache-Control'), 'public, max-age=180, s-maxage=180', change);
+    assert.equal(await response.text(), '[]', change);
+    assert.equal(calls.length, 2, change);
+  }
 });
 
 test('workerd rejects cyclic pagination and pages beyond its repository budget', async t => {

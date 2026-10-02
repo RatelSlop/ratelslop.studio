@@ -47,6 +47,10 @@
   </script>
 
   <style>
+    [hidden] {
+      display: none !important;
+    }
+
     /* Local Fonts: JetBrains Mono */
     @font-face {
       font-family: 'JetBrains Mono';
@@ -371,7 +375,8 @@
     }
 
     h1.site-title {
-      font-size: clamp(3.2rem, 9vw, 5.25rem);
+      font-size: clamp(2.5rem, 9vw, 5.25rem);
+      overflow-wrap: anywhere;
       font-weight: 800;
       letter-spacing: -0.05em;
       line-height: 0.95;
@@ -453,6 +458,11 @@
       transform: translateY(-1px);
     }
 
+    .github-link:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 3px;
+    }
+
     .github-link svg {
       width: 15px;
       height: 15px;
@@ -521,7 +531,9 @@
       font-size: 0.76rem;
       color: var(--text-dim);
       display: flex;
+      flex-wrap: wrap;
       align-items: center;
+      justify-content: center;
       gap: 0.45rem;
     }
 
@@ -555,6 +567,10 @@
       background: rgba(0, 0, 0, 0.03);
     }
 
+    .repo-table th:last-child {
+      width: 140px;
+    }
+
     .repo-table td {
       padding: 1.15rem 1.5rem;
       border-bottom: 1px solid var(--border);
@@ -578,6 +594,8 @@
       align-items: center;
       gap: 0.35rem;
       font-size: 0.95rem;
+      max-width: 100%;
+      overflow-wrap: anywhere;
     }
 
     .project-name:hover {
@@ -590,6 +608,7 @@
       font-size: 0.82rem;
       margin-top: 0.25rem;
       font-family: 'Space Grotesk', sans-serif;
+      overflow-wrap: anywhere;
     }
 
     .repo-meta {
@@ -612,6 +631,8 @@
       border: 1px solid var(--border);
       padding: 0.15rem 0.45rem;
       border-radius: 4px;
+      max-width: 100%;
+      overflow-wrap: anywhere;
     }
 
     .status-badge {
@@ -698,6 +719,8 @@
       font-weight: 600;
       font-size: 0.92rem;
       color: var(--text-title);
+      max-width: 100%;
+      overflow-wrap: anywhere;
     }
 
     .more-projects-row td {
@@ -772,7 +795,10 @@
         justify-content: center;
       }
       .repo-table th, .repo-table td {
-        padding: 1rem;
+        padding: 1rem 0.75rem;
+      }
+      .repo-table th:last-child {
+        width: 6.5rem;
       }
       footer {
         flex-direction: column;
@@ -851,8 +877,18 @@
           </a>
         </div>
 
-        <!-- Polished Coming Soon State (shown if no repositories exist) -->
-        <div id="coming-soon-container" class="coming-soon-container">
+        <div id="repo-status" class="coming-soon-container" role="status" aria-live="polite" aria-atomic="true">
+          <div class="coming-soon-badge">
+            <span id="repo-status-dot" class="pulse-dot" aria-hidden="true"></span>
+            <span id="repo-status-badge-text">loading</span>
+          </div>
+          <h3 id="repo-status-title" class="coming-soon-title">Loading projects</h3>
+          <p id="repo-status-desc" class="coming-soon-desc">Fetching the latest public projects. Please wait.</p>
+          <button id="retry-repos" class="github-link" type="button" hidden>Try again</button>
+        </div>
+
+        <!-- Coming soon is shown only after a successful, empty project list. -->
+        <div id="coming-soon-container" class="coming-soon-container" hidden>
           <div class="coming-soon-badge">
             <span class="pulse-dot"></span>
             <span id="coming-soon-badge-text">coming soon</span>
@@ -869,11 +905,11 @@
         </div>
 
         <!-- Repository Table (displayed when public repos are available) -->
-        <table id="repo-table" class="repo-table">
+        <table id="repo-table" class="repo-table" hidden>
           <thead>
             <tr>
               <th id="th-app">App / Repository</th>
-              <th id="th-url" style="width: 140px; text-align: right;">URL</th>
+              <th id="th-url" style="text-align: right;">URL</th>
             </tr>
           </thead>
           <tbody id="repo-list">
@@ -903,6 +939,13 @@
         statusText: 'ratelslop.studio // active',
         siteDesc: 'Hub for hobby projects, experimental web apps, and AI slop.',
         categoryTag: 'projects',
+        loadingBadge: 'loading',
+        loadingTitle: 'Loading projects',
+        loadingDesc: 'Fetching the latest public projects. Please wait.',
+        errorBadge: 'unavailable',
+        errorTitle: 'Projects could not be loaded',
+        errorDesc: 'The project list is temporarily unavailable. Try again or browse our repositories on GitHub.',
+        retryRepos: 'Try again',
         comingSoonBadge: 'coming soon',
         comingSoonTitle: 'Projects & tools in the making',
         comingSoonDesc: "We're currently building new hobby experiments and AI slop. Once a repository is published on GitHub, it will appear here automatically.",
@@ -924,9 +967,16 @@
         statusText: 'ratelslop.studio // actief',
         siteDesc: 'Hub voor hobbyprojecten, experimentele web apps en AI slop.',
         categoryTag: 'projecten',
+        loadingBadge: 'laden',
+        loadingTitle: 'Projecten laden',
+        loadingDesc: 'We halen de nieuwste openbare projecten op. Even geduld.',
+        errorBadge: 'niet beschikbaar',
+        errorTitle: 'Projecten konden niet worden geladen',
+        errorDesc: 'Het projectenoverzicht is tijdelijk niet beschikbaar. Probeer het opnieuw of bekijk onze repositories op GitHub.',
+        retryRepos: 'Opnieuw proberen',
         comingSoonBadge: 'coming soon',
         comingSoonTitle: 'Projecten & tools in de maak',
-        comingSoonDesc: 'We bouwen momenteel aan nieuwe hobby experimenten en AI slop. Zodra een repository openbaar wordt op GitHub, verschijnt deze hier direct in het overzicht.',
+        comingSoonDesc: 'We bouwen momenteel aan nieuwe hobby experimenten en AI slop. Zodra een repository openbaar wordt op GitHub, verschijnt deze automatisch in dit overzicht.',
         comingSoonSync: 'gekoppeld aan',
         thApp: 'App / Repository',
         thUrl: 'URL',
@@ -945,6 +995,27 @@
 
     let currentLang = readPreference('lang', ['en', 'nl']) || 'en';
     let loadedRepos = null;
+    let repositoryState = 'loading';
+    let repositoryLoad = null;
+
+    function updateRepositoryState(state) {
+      repositoryState = state;
+      const t = TRANSLATIONS[currentLang];
+      const loading = state === 'loading';
+      const status = document.getElementById('repo-status');
+      status.hidden = state !== 'loading' && state !== 'error';
+      status.setAttribute('aria-busy', String(loading));
+      document.getElementById('repo-status-dot').hidden = !loading;
+      document.getElementById('repo-status-badge-text').textContent = loading ? t.loadingBadge : t.errorBadge;
+      document.getElementById('repo-status-title').textContent = loading ? t.loadingTitle : t.errorTitle;
+      document.getElementById('repo-status-desc').textContent = loading ? t.loadingDesc : t.errorDesc;
+      const retry = document.getElementById('retry-repos');
+      retry.textContent = t.retryRepos;
+      retry.hidden = state !== 'error';
+      retry.disabled = loading;
+      document.getElementById('coming-soon-container').hidden = state !== 'empty';
+      document.getElementById('repo-table').hidden = state !== 'ready';
+    }
 
     function applyLanguage(lang, remember = false) {
       lang = Object.hasOwn(TRANSLATIONS, lang) ? lang : 'en';
@@ -979,6 +1050,8 @@
       // Re-render repositories if already loaded
       if (loadedRepos) {
         renderRepos(loadedRepos);
+      } else {
+        updateRepositoryState(repositoryState);
       }
     }
 
@@ -1065,6 +1138,11 @@
 
     function publicProjects(repos) {
       if (!Array.isArray(repos)) throw new Error('Invalid repository list');
+      // Invalid nonempty data does not establish that there are no projects.
+      if (repos.length && !repos.some(repo => repo && typeof repo.private === 'boolean'
+        && typeof repo.name === 'string' && /^[a-z\d_.-]{1,100}$/i.test(repo.name))) {
+        throw new Error('Invalid repository list');
+      }
       return repos.filter(repo => repo && repo.private === false && typeof repo.name === 'string'
         && /^[a-z\d_.-]{1,100}$/i.test(repo.name) && !repo.name.startsWith('.')).map(repo => {
         const language = typeof repo.language === 'string' && repo.language.trim() ? repo.language.trim() : null;
@@ -1119,7 +1197,8 @@
 
       // Step 1: Query the edge proxy without cookies or a Referer header.
       try {
-        return publicProjects(await fetchJsonWithDeadline(WORKER_ENDPOINT, requestOptions, PROXY_TIMEOUT_MS));
+        // Revalidate browser entries, including old four-hour responses; the shared edge cache still applies.
+        return publicProjects(await fetchJsonWithDeadline(WORKER_ENDPOINT, { ...requestOptions, cache: 'no-cache' }, PROXY_TIMEOUT_MS));
       } catch (err) {
         console.warn('Cloudflare Worker proxy unavailable, falling back to direct GitHub API:', err);
       }
@@ -1154,7 +1233,10 @@
 
     function renderRepos(repos) {
       loadedRepos = repos;
-      if (!repos || !Array.isArray(repos)) return;
+      if (!Array.isArray(repos)) {
+        updateRepositoryState('error');
+        return;
+      }
 
       const t = TRANSLATIONS[currentLang] || TRANSLATIONS.en;
       // Filter out meta-repos like '.github'
@@ -1165,6 +1247,7 @@
       const tbody = document.getElementById('repo-list');
 
       if (publicProjectRepos.length > 0) {
+        updateRepositoryState('ready');
         if (comingSoonContainer) comingSoonContainer.style.display = 'none';
         if (repoTable) repoTable.style.display = 'table';
         tbody.innerHTML = '';
@@ -1225,14 +1308,29 @@
         `;
         tbody.appendChild(moreRow);
       } else {
+        updateRepositoryState('empty');
         if (comingSoonContainer) comingSoonContainer.style.display = 'flex';
         if (repoTable) repoTable.style.display = 'none';
       }
     }
 
-    // Apply default language and fetch repos
+    function loadRepositories() {
+      // Retrying or switching language cannot start overlapping requests.
+      if (repositoryLoad) return repositoryLoad;
+      loadedRepos = null;
+      updateRepositoryState('loading');
+      repositoryLoad = fetchGitHubRepos()
+        .then(renderRepos)
+        .catch(() => renderRepos(null))
+        .finally(() => { repositoryLoad = null; });
+      return repositoryLoad;
+    }
+
+    document.getElementById('retry-repos').addEventListener('click', () => { void loadRepositories(); });
+
+    // Apply default language and load the project list.
     applyLanguage(currentLang);
-    fetchGitHubRepos().then(repos => renderRepos(repos));
+    void loadRepositories();
   </script>
 </body>
 </html>
